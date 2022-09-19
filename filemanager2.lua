@@ -1,4 +1,4 @@
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 local micro = import("micro")
 local config = import("micro/config")
@@ -6,6 +6,35 @@ local shell = import("micro/shell")
 local buffer = import("micro/buffer")
 local os = import("os")
 local filepath = import("path/filepath")
+local regexp = import("regexp")
+
+function Icons()
+  -- if icons plugin is instaled. See: https://gitlab.com/taconi/micro-icons
+  if icons ~= nil and icons.icons ~= nil then
+    return icons.icons
+  else
+    return {
+      ["dir"] = "+ ",
+      ["dir_open"] = "- ",
+      ["default"] = "",
+    }
+  end
+end
+
+function GetIcon(filename)
+  local icons = Icons()
+
+  for pattern, icon in pairs(icons) do
+    if pattern ~= "dir" and
+    pattern ~= "dir_open" and
+    pattern ~= "default" and
+    regexp.Match(pattern, filename) then
+      return icon
+    end
+  end
+
+  return icons["default"]
+end
 
 -- Clear out all stuff in Micro's messenger
 local function clear_messenger()
@@ -72,6 +101,8 @@ end
 -- Returns a list of files (in the target dir) that are ignored by the VCS system (if exists)
 -- aka this returns a list of gitignored files (but for whatever VCS is found)
 local function get_ignored_files(tar_dir)
+  local icons = Icons()
+
 	-- True/false if the target dir returns a non-fatal error when checked with 'git status'
 	local function has_git()
 		local git_rp_results = shell.ExecCommand('git  -C "' .. tar_dir .. '" rev-parse --is-inside-work-tree')
@@ -84,7 +115,7 @@ local function get_ignored_files(tar_dir)
 		local git_ls_results =
 			shell.ExecCommand('git -C "' .. tar_dir .. '" ls-files . --ignored --exclude-standard --others --directory')
 		-- Cut off the newline that is at the end of each result
-		for split_results in string.gmatch(git_ls_results, "([^\r\n]+)") do
+		for split_results in string.gmatch(git_ls_results, "([^\r\n]" .. icons["dir"] .. ")") do
 			-- git ls-files adds a trailing slash if it's a dir, so we remove it (if it is one)
 			readout_results[#readout_results + 1] =
 				(string.sub(split_results, -1) == "/" and string.sub(split_results, 1, -2) or split_results)
@@ -120,6 +151,8 @@ end
 -- Structures the output of the scanned directory content to be used in the scanlist table
 -- This is useful for both initial creation of the tree, and when nesting with uncompress_target()
 local function get_scanlist(dir, ownership, indent_n)
+  local icons = Icons()
+
 	local golib_ioutil = import("ioutil")
 	-- Gets a list of all the files in the current dir
 	local dir_scan, scan_error = golib_ioutil.ReadDir(dir)
@@ -136,8 +169,8 @@ local function get_scanlist(dir, ownership, indent_n)
 
 	local function get_results_object(file_name)
 		local abs_path = filepath.Join(dir, file_name)
-		-- Use "+" for dir's, "" for files
-		local dirmsg = (is_dir(abs_path) and "+" or "")
+		local dirmsg = (is_dir(abs_path) and icons["dir"] or GetIcon(file_name))
+
 		return new_listobj(abs_path, dirmsg, ownership, indent_n)
 	end
 
@@ -257,6 +290,8 @@ local function scanlist_is_empty()
 end
 
 local function refresh_view()
+  local icons = Icons()
+
 	clear_messenger()
 
 	-- If it's less than 30, just use 30 for width. Don't want it too small
@@ -282,14 +317,14 @@ local function refresh_view()
 	-- NOTE: might want to not do all these concats in the loop, it can get slow
 	for i = 1, #scanlist do
 		-- The first 3 indicies are the dir/separator/"..", so skip them
-		if scanlist[i].dirmsg ~= "" then
+		if scanlist[i].dirmsg == icons["dir"] or scanlist[i].dirmsg == icons["dir_open"] then
 			-- Add the + or - to the left to signify if it's compressed or not
 			-- Add a forward slash to the right to signify it's a dir
 			display_content = scanlist[i].dirmsg .. " " .. get_basename(scanlist[i].abspath) .. "/"
 		else
 			-- Use the basename from the full path for display
 			-- Two spaces to align with any directories, instead of being "off"
-			display_content = "  " .. get_basename(scanlist[i].abspath)
+			display_content = scanlist[i].dirmsg .. "  " .. get_basename(scanlist[i].abspath)
 		end
 
 		if scanlist[i].owner > 0 then
@@ -333,13 +368,15 @@ end
 
 -- Find everything nested under the target, and remove it from the scanlist
 local function compress_target(y, delete_y)
+  local icons = Icons()
+
 	-- Can't compress the top stuff, or if there's nothing there, so exit early
 	if y == 0 or scanlist_is_empty() then
 		return
 	end
 	-- Check if the target is a dir, since files don't have anything to compress
 	-- Also make sure it's actually an uncompressed dir by checking the gutter message
-	if scanlist[y].dirmsg == "-" then
+	if scanlist[y].dirmsg == icons["dir_open"] then
 		local target_index, delete_index
 		-- Add the original target y to stuff to delete
 		local delete_under = {[1] = y}
@@ -360,7 +397,7 @@ local function compress_target(y, delete_y)
 						-- Keep count of total deleted (can't use #delete_under because it's for deleted dir count)
 						del_count = del_count + 1
 						-- Check if an uncompressed dir
-						if scanlist[i].dirmsg == "-" then
+						if scanlist[i].dirmsg == icons["dir_open"] then
 							-- Add the index to stuff to delete, since it holds nested content
 							delete_under[#delete_under + 1] = i
 						end
@@ -396,7 +433,7 @@ local function compress_target(y, delete_y)
 		-- If not deleting, then update the gutter message to be + to signify compressed
 		if not delete_y then
 			-- Update the dir message
-			scanlist[y].dirmsg = "+"
+			scanlist[y].dirmsg = icons["dir"]
 		end
 	elseif config.GetGlobalOption("filemanager2.compressparent") and not delete_y then
 		goto_parent_dir()
@@ -438,6 +475,8 @@ end
 -- Prompts the user for deletion of a file/dir when triggered
 -- Not local so Micro can access it
 function prompt_delete_at_cursor()
+  local icons = Icons()
+
 	local y = get_safe_y()
 	-- Don't let them delete the top 3 index dir/separator/..
 	if y == 0 or scanlist_is_empty() then
@@ -446,7 +485,7 @@ function prompt_delete_at_cursor()
 		return
 	end
 
-    micro.InfoBar():YNPrompt("Do you want to delete the " .. (scanlist[y].dirmsg ~= "" and "dir" or "file") .. ' "' .. scanlist[y].abspath .. '"? ', function(yes, canceled)
+    micro.InfoBar():YNPrompt("Do you want to delete the " .. (scanlist[y].dirmsg == icons["dir"] and "dir" or "file") .. ' "' .. scanlist[y].abspath .. '"? ', function(yes, canceled)
         if yes and not canceled then
             -- Use Go's os.Remove to delete the file
             local go_os = import("os")
@@ -513,13 +552,15 @@ end
 -- If it's actually a file, open it in a new vsplit
 -- THIS EXPECTS ZERO-BASED Y
 local function try_open_at_y(y)
+  local icons = Icons()
+
 	-- 2 is the zero-based index of ".."
 	if y == 2 then
 		go_back_dir()
 	elseif y > 2 and not scanlist_is_empty() then
 		-- -2 to conform to our scanlist "missing" first 3 indicies
 		y = y - 2
-		if scanlist[y].dirmsg ~= "" then
+		if scanlist[y].dirmsg == icons["dir"] or scanlist[y].dirmsg == icons["dir_open"] then
 			-- if passed path is a directory, update the current dir to be one deeper..
 			update_current_dir(scanlist[y].abspath)
 		else
@@ -537,12 +578,14 @@ end
 
 -- Opens the dir's contents nested under itself
 local function uncompress_target(y)
+  local icons = Icons()
+
 	-- Exit early if on the top 3 non-list items
 	if y == 0 or scanlist_is_empty() then
 		return
 	end
 	-- Only uncompress if it's a dir and it's not already uncompressed
-	if scanlist[y].dirmsg == "+" then
+	if scanlist[y].dirmsg == icons["dir"] then
 		-- Get a new scanlist with results from the scan in the target dir
 		local scan_results = get_scanlist(scanlist[y].abspath, y, scanlist[y].indent + 1)
 		-- Don't run any of this if there's nothing in the dir we scanned, pointless
@@ -577,7 +620,7 @@ local function uncompress_target(y)
 		end
 
 		-- Change to minus to signify it's uncompressed
-		scanlist[y].dirmsg = "-"
+		scanlist[y].dirmsg = icons["dir_open"]
 
 		-- Check if we actually need to resize, or if we're nesting at the same indent
 		-- Also check if there's anything in the dir, as we don't need to expand on an empty dir
@@ -665,6 +708,8 @@ end
 
 -- Prompts the user for the file/dir name, then creates the file/dir using Go's os package
 local function create_filedir(filedir_name, make_dir)
+  local icons = Icons()
+
 	if micro.CurPane() ~= tree_view then
 		micro.InfoBar():Message("You can't create a file/dir if your cursor isn't in the tree!")
 		return
@@ -686,7 +731,7 @@ local function create_filedir(filedir_name, make_dir)
 	-- Check there's actually anything in the list, and that they're not on the ".."
 	if not scanlist_empty and y ~= 0 then
 		-- If they're inserting on a folder, don't strip its path
-		if scanlist[y].dirmsg ~= "" then
+		if scanlist[y].dirmsg == icons["dir"] or scanlist[y].dirmsg == icons["dir_open"] then
 			-- Join our new file/dir onto the dir
 			filedir_path = filepath.Join(scanlist[y].abspath, filedir_name)
 		else
@@ -725,9 +770,7 @@ local function create_filedir(filedir_name, make_dir)
 	end
 
 	-- Creates a sort of default object, to be modified below
-	-- If creating a dir, use a "+"
-	local new_filedir = new_listobj(filedir_path, (make_dir and "+" or ""), 0, 0)
-
+	local new_filedir = new_listobj(filedir_path, (make_dir and icons["dir"] or GetIcon(filedir_name)), 0, 0)
 	-- Refresh with our new value(s)
 	local last_y
 
@@ -738,11 +781,11 @@ local function create_filedir(filedir_name, make_dir)
 		last_y = tree_view.Cursor.Loc.Y + 1
 
 		-- Only actually add the object to the list if it's not created on an uncompressed folder
-		if scanlist[y].dirmsg == "+" then
+		if scanlist[y].dirmsg == icons["dir"] then
 			-- Exit early, since it was created into an uncompressed folder
 
 			return
-		elseif scanlist[y].dirmsg == "-" then
+		elseif scanlist[y].dirmsg == icons["dir_open"] then
 			-- Check if created on top of an uncompressed folder
 			-- Change ownership to the folder it was created on top of..
 			-- otherwise, the ownership would be incorrect
@@ -891,6 +934,8 @@ end
 -- Goes up 1 visible directory (if any)
 -- Not local so it can be bound
 function goto_prev_dir()
+  local icons = Icons()
+
 	if micro.CurPane() ~= tree_view or scanlist_is_empty() then
 		return
 	end
@@ -902,7 +947,7 @@ function goto_prev_dir()
 		for i = cur_y - 1, 1, -1 do
 			move_count = move_count + 1
 			-- If a dir, stop counting
-			if scanlist[i].dirmsg ~= "" then
+			if scanlist[i].dirmsg == icons["dir"] or scanlist[i].dirmsg == icons["dir_open"] then
 				-- Jump to its parent (the ownership)
 				tree_view.Cursor:UpN(move_count)
 				select_line()
@@ -915,6 +960,8 @@ end
 -- Goes down 1 visible directory (if any)
 -- Not local so it can be bound
 function goto_next_dir()
+  local icons = Icons()
+
 	if micro.CurPane() ~= tree_view or scanlist_is_empty() then
 		return
 	end
@@ -931,7 +978,7 @@ function goto_next_dir()
 		for i = cur_y + 1, #scanlist do
 			move_count = move_count + 1
 			-- If a dir, stop counting
-			if scanlist[i].dirmsg ~= "" then
+			if scanlist[i].dirmsg == icons["dir"] or scanlist[i].dirmsg == icons["dir_open"] then
 				-- Jump to its parent (the ownership)
 				tree_view.Cursor:DownN(move_count)
 				select_line()
