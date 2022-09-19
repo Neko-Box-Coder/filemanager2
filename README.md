@@ -4,7 +4,11 @@ A simple plugin that allows for easy navigation of a file tree.
 
 This plugin contains the same functionality as [filemanager](https://github.com/micro-editor/updated-plugins/tree/master/filemanager-plugin), but with the commands 'rename', 'touch' and 'mkdir' working in micro v2. The adjustment of these commands was done by [Ryo Inagaki](https://github.com/ryo-inagaki/) and there is already a [Pull Request](https://github.com/micro-editor/updated-plugins/pull/10) however, PR's are not accepted for a while (there is an [issue](https://github.com/micro-editor/plugin-channel/issues/74) on this subject). This repository was created to make available the commands working, as soon as the pull request is accepted, this repository will be archived and deleted after a while.
 
-![Example picture](./example.jpg?raw=true "Example")
+![Example picture](./assets/example.jpg?raw=true "Example")
+
+If [icons plugin](https://gitlab.com/taconi/micro-icons) is installed.
+
+![Example picture icons](./assets/example_icons.png?raw=true "Example")
 
 ## Installation
 

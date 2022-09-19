@@ -6,6 +6,13 @@
     "Website": "",
     "Versions": [
       {
+        "Version": "1.1.1",
+        "Url": "https://gitlab.com/taconi/micro-filemanager2/-/archive/v1.1.1/micro-filemanager2-v1.1.1.zip",
+        "Require": {
+          "micro": ">=2.0.11"
+        }
+      },
+      {
         "Version": "1.1.0",
         "Url": "https://gitlab.com/taconi/micro-filemanager2/-/archive/v1.1.0/micro-filemanager2-v1.1.0.zip",
         "Require": {
