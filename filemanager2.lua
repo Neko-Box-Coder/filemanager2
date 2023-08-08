@@ -8,32 +8,18 @@ local os = import("os")
 local filepath = import("path/filepath")
 local regexp = import("regexp")
 
+local icon = dofile(config.ConfigDir .. '/plug/filemanager2/icon.lua')
+
 function Icons()
-  -- if icons plugin is instaled. See: https://gitlab.com/taconi/micro-icons
-  if icons ~= nil and icons.icons ~= nil then
-    return icons.icons
-  else
-    return {
-      ["dir"] = "+ ",
-      ["dir_open"] = "- ",
-      ["default"] = "",
-    }
-  end
+  return icon.Icons()
 end
 
 function GetIcon(filename)
-  local icons = Icons()
+  return icon.GetIcon(filename)
+end
 
-  for pattern, icon in pairs(icons) do
-    if pattern ~= "dir" and
-    pattern ~= "dir_open" and
-    pattern ~= "default" and
-    regexp.Match(pattern, filename) then
-      return icon
-    end
-  end
-
-  return icons["default"]
+function FileIcon(buf)
+  return icon.GetIcon(buf.Path)
 end
 
 -- Clear out all stuff in Micro's messenger
@@ -1399,6 +1385,11 @@ function init()
     -- Lets the user have the filetree auto-open any time Micro is opened
     -- false by default, as it's a rather noticable user-facing change
     config.RegisterCommonOption("filemanager2", "openonstart", false)
+    -- Use nerd fonts icons
+    config.RegisterCommonOption("filemanager2", "nerdfonts", false)
+
+    -- Use file icon in status bar
+    micro.SetStatusInfoFn('filemanager2.FileIcon')
 
     -- Open/close the tree view
     config.MakeCommand("tree", toggle_tree, config.NoComplete)

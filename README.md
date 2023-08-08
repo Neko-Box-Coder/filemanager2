@@ -6,7 +6,7 @@ This plugin contains the same functionality as [filemanager](https://github.com/
 
 ![Example picture](./assets/example.jpg?raw=true "Example")
 
-If [icons plugin](https://gitlab.com/taconi/micro-icons) is installed.
+If [nerd fonts](https://www.nerdfonts.com) is installed and options `filemanager2.nerdfonts` is `true`
 
 ![Example picture icons](./assets/example_icons.png?raw=true "Example")
 
@@ -48,11 +48,12 @@ If the directory is expanded, there will be a `+` to the left of it. If it is co
 
 | Option                       | Purpose                                                      | Default |
 | :--------------------------- | :----------------------------------------------------------- | :------ |
-| `filemanager2-showdotfiles`   | Show dotfiles (hidden if false)                              | `true`  |
-| `filemanager2-showignored`    | Show gitignore'd files (hidden if false)                     | `true`  |
-| `filemanager2-compressparent` | Collapse the parent dir when left is pressed on a child file | `true`  |
-| `filemanager2-foldersfirst`   | Sorts folders above any files                                | `true`  |
-| `filemanager2-openonstart`    | Automatically open the file tree when starting Micro         | `false` |
+| `filemanager2.showdotfiles`   | Show dotfiles (hidden if false)                              | `true`  |
+| `filemanager2.showignored`    | Show gitignore'd files (hidden if false)                     | `true`  |
+| `filemanager2.compressparent` | Collapse the parent dir when left is pressed on a child file | `true`  |
+| `filemanager2.foldersfirst`   | Sorts folders above any files                                | `true`  |
+| `filemanager2.openonstart`    | Automatically open the file tree when starting Micro         | `false` |
+| `filemanager2.nerdfonts`      | Use nerd fonts icons                                         | `false` |
 
 ### Commands and Keybindings
 
