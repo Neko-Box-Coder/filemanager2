@@ -17,7 +17,7 @@ Add this repo as a **pluginrepos** option in the **~/.config/micro/settings.json
 ```json
 {
   "pluginrepos": [
-      "https://gitlab.com/taconi/micro-filemanager2/-/raw/main/repo.json"
+      "https://codeberg.org/micro-plugins/filemanager2/raw/branch/main/repo.json"
   ]
 }
 ```
