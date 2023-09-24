@@ -11,6 +11,13 @@
     "Website": "https://codeberg.org/micro-plugins/filemanager2",
     "Versions": [
       {
+        "Version": "1.2.1",
+        "Url": "https://codeberg.org/micro-plugins/filemanager2/archive/v1.2.1.zip",
+        "Require": {
+          "micro": ">=2.0.12"
+        }
+      },
+      {
         "Version": "1.2.0",
         "Url": "https://codeberg.org/micro-plugins/filemanager2/archive/v1.2.0.zip",
         "Require": {
