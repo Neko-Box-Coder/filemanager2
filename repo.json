@@ -1,6 +1,7 @@
 [
     {
         "Description": "File manager for Micro",
+        "License": "MIT",
         "Name": "filemanager2",
         "Tags": [
             "filetree",
