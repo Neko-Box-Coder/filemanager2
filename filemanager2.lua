@@ -1,25 +1,25 @@
 VERSION = '1.2.1'
 
-local micro = import("micro")
-local config = import("micro/config")
-local shell = import("micro/shell")
-local buffer = import("micro/buffer")
-local os = import("os")
-local filepath = import("path/filepath")
-local regexp = import("regexp")
+local micro = import('micro')
+local config = import('micro/config')
+local shell = import('micro/shell')
+local buffer = import('micro/buffer')
+local os = import('os')
+local filepath = import('path/filepath')
+local regexp = import('regexp')
 
 local icon = dofile(config.ConfigDir .. '/plug/filemanager2/icon.lua')
 
 function Icons()
-  return icon.Icons()
+	return icon.Icons()
 end
 
 function GetIcon(filename)
-  return icon.GetIcon(filename)
+	return icon.GetIcon(filename)
 end
 
 function FileIcon(buf)
-  return icon.GetIcon(buf.Path)
+	return icon.GetIcon(buf.Path)
 end
 
 -- Clear out all stuff in Micro's messenger
@@ -40,17 +40,17 @@ local scanlist = {}
 -- Get a new object used when adding to scanlist
 local function new_listobj(p, d, o, i)
 	return {
-		["abspath"] = p,
-		["dirmsg"] = d,
-		["owner"] = o,
-		["indent"] = i,
+		['abspath'] = p,
+		['dirmsg'] = d,
+		['owner'] = o,
+		['indent'] = i,
 		-- Since decreasing/increasing is common, we include these with the object
-		["decrease_owner"] = function(self, minus_num)
+		['decrease_owner'] = function(self, minus_num)
 			self.owner = self.owner - minus_num
 		end,
-		["increase_owner"] = function(self, plus_num)
+		['increase_owner'] = function(self, plus_num)
 			self.owner = self.owner + plus_num
-		end
+		end,
 	}
 end
 
@@ -69,7 +69,7 @@ end
 -- A check for if a path is a dir
 local function is_dir(path)
 	-- Used for checking if dir
-	local golib_os = import("os")
+	local golib_os = import('os')
 	-- Returns a FileInfo on the current file/path
 	local file_info, stat_error = golib_os.Stat(path)
 	-- Wrap in nil check for file/dirs without read permissions
@@ -78,7 +78,7 @@ local function is_dir(path)
 		return file_info:IsDir()
 	else
 		-- Couldn't stat the file/dir, usually because no read permissions
-		micro.InfoBar():Error("Error checking if is dir: ", stat_error)
+		micro.InfoBar():Error('Error checking if is dir: ', stat_error)
 		-- Nil since we can't read the path
 		return nil
 	end
@@ -87,12 +87,12 @@ end
 -- Returns a list of files (in the target dir) that are ignored by the VCS system (if exists)
 -- aka this returns a list of gitignored files (but for whatever VCS is found)
 local function get_ignored_files(tar_dir)
-  local icons = Icons()
+	local icons = Icons()
 
 	-- True/false if the target dir returns a non-fatal error when checked with 'git status'
 	local function has_git()
 		local git_rp_results = shell.ExecCommand('git  -C "' .. tar_dir .. '" rev-parse --is-inside-work-tree')
-		return git_rp_results:match("^true%s*$")
+		return git_rp_results:match('^true%s*$')
 	end
 	local readout_results = {}
 	-- TODO: Support more than just Git, such as Mercurial or SVN
@@ -101,10 +101,11 @@ local function get_ignored_files(tar_dir)
 		local git_ls_results =
 			shell.ExecCommand('git -C "' .. tar_dir .. '" ls-files . --ignored --exclude-standard --others --directory')
 		-- Cut off the newline that is at the end of each result
-		for split_results in string.gmatch(git_ls_results, "([^\r\n]" .. icons["dir"] .. ")") do
+		for split_results in string.gmatch(git_ls_results, '([^\r\n]' .. icons['dir'] .. ')') do
 			-- git ls-files adds a trailing slash if it's a dir, so we remove it (if it is one)
-			readout_results[#readout_results + 1] =
-				(string.sub(split_results, -1) == "/" and string.sub(split_results, 1, -2) or split_results)
+			readout_results[#readout_results + 1] = (
+				string.sub(split_results, -1) == '/' and string.sub(split_results, 1, -2) or split_results
+			)
 		end
 	end
 
@@ -115,11 +116,11 @@ end
 -- Returns the basename of a path (aka a name without leading path)
 local function get_basename(path)
 	if path == nil then
-		micro.Log("Bad path passed to get_basename")
+		micro.Log('Bad path passed to get_basename')
 		return nil
 	else
 		-- Get Go's path lib for a basename callback
-		local golib_path = import("filepath")
+		local golib_path = import('filepath')
 		return golib_path.Base(path)
 	end
 end
@@ -127,7 +128,7 @@ end
 -- Returns true/false if the file is a dotfile
 local function is_dotfile(file_name)
 	-- Check if the filename starts with a dot
-	if string.sub(file_name, 1, 1) == "." then
+	if string.sub(file_name, 1, 1) == '.' then
 		return true
 	else
 		return false
@@ -137,15 +138,15 @@ end
 -- Structures the output of the scanned directory content to be used in the scanlist table
 -- This is useful for both initial creation of the tree, and when nesting with uncompress_target()
 local function get_scanlist(dir, ownership, indent_n)
-  local icons = Icons()
+	local icons = Icons()
 
-	local golib_ioutil = import("ioutil")
+	local golib_ioutil = import('ioutil')
 	-- Gets a list of all the files in the current dir
 	local dir_scan, scan_error = golib_ioutil.ReadDir(dir)
 
 	-- dir_scan will be nil if the directory is read-protected (no permissions)
 	if dir_scan == nil then
-		micro.InfoBar():Error("Error scanning dir: ", scan_error)
+		micro.InfoBar():Error('Error scanning dir: ', scan_error)
 		return nil
 	end
 
@@ -155,15 +156,15 @@ local function get_scanlist(dir, ownership, indent_n)
 
 	local function get_results_object(file_name)
 		local abs_path = filepath.Join(dir, file_name)
-		local dirmsg = (is_dir(abs_path) and icons["dir"] or GetIcon(file_name))
+		local dirmsg = (is_dir(abs_path) and icons['dir'] or GetIcon(file_name))
 
 		return new_listobj(abs_path, dirmsg, ownership, indent_n)
 	end
 
 	-- Save so we don't have to rerun GetOption a bunch
-	local show_dotfiles = config.GetGlobalOption("filemanager2.showdotfiles")
-	local show_ignored = config.GetGlobalOption("filemanager2.showignored")
-	local folders_first = config.GetGlobalOption("filemanager2.foldersfirst")
+	local show_dotfiles = config.GetGlobalOption('filemanager2.showdotfiles')
+	local show_ignored = config.GetGlobalOption('filemanager2.showignored')
+	local folders_first = config.GetGlobalOption('filemanager2.foldersfirst')
 
 	-- The list of VCS-ignored files (if any)
 	-- Only bother getting ignored files if we're not showing ignored
@@ -276,7 +277,7 @@ local function scanlist_is_empty()
 end
 
 local function refresh_view()
-  local icons = Icons()
+	local icons = Icons()
 
 	clear_messenger()
 
@@ -291,11 +292,11 @@ local function refresh_view()
 
 	-- Insert the top 3 things that are always there
 	-- Current dir
-	tree_view.Buf.EventHandler:Insert(buffer.Loc(0, 0), current_dir .. "\n")
+	tree_view.Buf.EventHandler:Insert(buffer.Loc(0, 0), current_dir .. '\n')
 	-- An ASCII separator
-	tree_view.Buf.EventHandler:Insert(buffer.Loc(0, 1), repeat_str("─", tree_view:GetView().Width) .. "\n")
+	tree_view.Buf.EventHandler:Insert(buffer.Loc(0, 1), repeat_str('─', tree_view:GetView().Width) .. '\n')
 	-- The ".." and use a newline if there are things in the current dir
-	tree_view.Buf.EventHandler:Insert(buffer.Loc(0, 2), (#scanlist > 0 and "..\n" or ".."))
+	tree_view.Buf.EventHandler:Insert(buffer.Loc(0, 2), (#scanlist > 0 and '..\n' or '..'))
 
 	-- Holds the current basename of the path (purely for display)
 	local display_content
@@ -303,25 +304,25 @@ local function refresh_view()
 	-- NOTE: might want to not do all these concats in the loop, it can get slow
 	for i = 1, #scanlist do
 		-- The first 3 indicies are the dir/separator/"..", so skip them
-		if scanlist[i].dirmsg == icons["dir"] or scanlist[i].dirmsg == icons["dir_open"] then
+		if scanlist[i].dirmsg == icons['dir'] or scanlist[i].dirmsg == icons['dir_open'] then
 			-- Add the + or - to the left to signify if it's compressed or not
 			-- Add a forward slash to the right to signify it's a dir
-			display_content = scanlist[i].dirmsg .. " " .. get_basename(scanlist[i].abspath) .. "/"
+			display_content = scanlist[i].dirmsg .. ' ' .. get_basename(scanlist[i].abspath) .. '/'
 		else
 			-- Use the basename from the full path for display
 			-- Two spaces to align with any directories, instead of being "off"
-			display_content = scanlist[i].dirmsg .. "  " .. get_basename(scanlist[i].abspath)
+			display_content = scanlist[i].dirmsg .. '  ' .. get_basename(scanlist[i].abspath)
 		end
 
 		if scanlist[i].owner > 0 then
 			-- Add a space and repeat it * the indent number
-			display_content = repeat_str(" ", 2 * scanlist[i].indent) .. display_content
+			display_content = repeat_str(' ', 2 * scanlist[i].indent) .. display_content
 		end
 
 		-- Newlines are needed for all inserts except the last
 		-- If you insert a newline on the last, it leaves a blank spot at the bottom
 		if i < #scanlist then
-			display_content = display_content .. "\n"
+			display_content = display_content .. '\n'
 		end
 
 		-- Insert line-by-line to avoid out-of-bounds on big folders
@@ -330,7 +331,7 @@ local function refresh_view()
 	end
 
 	-- Resizes all views after messing with ours
-    tree_view:Tab():Resize()
+	tree_view:Tab():Resize()
 end
 
 -- Moves the cursor to the ".." in tree_view
@@ -354,7 +355,7 @@ end
 
 -- Find everything nested under the target, and remove it from the scanlist
 local function compress_target(y, delete_y)
-  local icons = Icons()
+	local icons = Icons()
 
 	-- Can't compress the top stuff, or if there's nothing there, so exit early
 	if y == 0 or scanlist_is_empty() then
@@ -362,10 +363,10 @@ local function compress_target(y, delete_y)
 	end
 	-- Check if the target is a dir, since files don't have anything to compress
 	-- Also make sure it's actually an uncompressed dir by checking the gutter message
-	if scanlist[y].dirmsg == icons["dir_open"] then
+	if scanlist[y].dirmsg == icons['dir_open'] then
 		local target_index, delete_index
 		-- Add the original target y to stuff to delete
-		local delete_under = {[1] = y}
+		local delete_under = { [1] = y }
 		local new_table = {}
 		local del_count = 0
 		-- Loop through the whole table, looking for nested content, or stuff with ownership == y...
@@ -383,7 +384,7 @@ local function compress_target(y, delete_y)
 						-- Keep count of total deleted (can't use #delete_under because it's for deleted dir count)
 						del_count = del_count + 1
 						-- Check if an uncompressed dir
-						if scanlist[i].dirmsg == icons["dir_open"] then
+						if scanlist[i].dirmsg == icons['dir_open'] then
 							-- Add the index to stuff to delete, since it holds nested content
 							delete_under[#delete_under + 1] = i
 						end
@@ -419,9 +420,9 @@ local function compress_target(y, delete_y)
 		-- If not deleting, then update the gutter message to be + to signify compressed
 		if not delete_y then
 			-- Update the dir message
-			scanlist[y].dirmsg = icons["dir"]
+			scanlist[y].dirmsg = icons['dir']
 		end
-	elseif config.GetGlobalOption("filemanager2.compressparent") and not delete_y then
+	elseif config.GetGlobalOption('filemanager2.compressparent') and not delete_y then
 		goto_parent_dir()
 		-- Prevent a pointless refresh of the view
 		return
@@ -452,7 +453,7 @@ local function compress_target(y, delete_y)
 
 	if tree_view:GetView().Width > (30 + highest_visible_indent) then
 		-- Shave off some width
-        tree_view:ResizePane(30 + highest_visible_indent)
+		tree_view:ResizePane(30 + highest_visible_indent)
 	end
 
 	refresh_and_select()
@@ -461,34 +462,41 @@ end
 -- Prompts the user for deletion of a file/dir when triggered
 -- Not local so Micro can access it
 function prompt_delete_at_cursor()
-  local icons = Icons()
+	local icons = Icons()
 
 	local y = get_safe_y()
 	-- Don't let them delete the top 3 index dir/separator/..
 	if y == 0 or scanlist_is_empty() then
-		micro.InfoBar():Error("You can't delete that")
+		micro.InfoBar():Error('You can\'t delete that')
 		-- Exit early if there's nothing to delete
 		return
 	end
 
-    micro.InfoBar():YNPrompt("Do you want to delete the " .. (scanlist[y].dirmsg == icons["dir"] and "dir" or "file") .. ' "' .. scanlist[y].abspath .. '"? ', function(yes, canceled)
-        if yes and not canceled then
-            -- Use Go's os.Remove to delete the file
-            local go_os = import("os")
-            -- Delete the target (if its a dir then the children too)
-            local remove_log = go_os.RemoveAll(scanlist[y].abspath)
-            if remove_log == nil then
-                micro.InfoBar():Message("Filemanager2 deleted: ", scanlist[y].abspath)
-                -- Remove the target (and all nested) from scanlist[y + 1]
-                -- true to delete y
-                compress_target(get_safe_y(), true)
-            else
-                micro.InfoBar():Error("Failed deleting file/dir: ", remove_log)
-            end
-        else
-            micro.InfoBar():Message("Nothing was deleted")
-        end
-    end)
+	micro.InfoBar():YNPrompt(
+		'Do you want to delete the '
+			.. (scanlist[y].dirmsg == icons['dir'] and 'dir' or 'file')
+			.. ' "'
+			.. scanlist[y].abspath
+			.. '"? ',
+		function(yes, canceled)
+			if yes and not canceled then
+				-- Use Go's os.Remove to delete the file
+				local go_os = import('os')
+				-- Delete the target (if its a dir then the children too)
+				local remove_log = go_os.RemoveAll(scanlist[y].abspath)
+				if remove_log == nil then
+					micro.InfoBar():Message('Filemanager2 deleted: ', scanlist[y].abspath)
+					-- Remove the target (and all nested) from scanlist[y + 1]
+					-- true to delete y
+					compress_target(get_safe_y(), true)
+				else
+					micro.InfoBar():Error('Failed deleting file/dir: ', remove_log)
+				end
+			else
+				micro.InfoBar():Message('Nothing was deleted')
+			end
+		end
+	)
 end
 
 -- Changes the current dir in the top of the tree..
@@ -538,7 +546,7 @@ end
 -- If it's actually a file, open it in a new vsplit
 -- THIS EXPECTS ZERO-BASED Y
 local function try_open_at_y(y)
-  local icons = Icons()
+	local icons = Icons()
 
 	-- 2 is the zero-based index of ".."
 	if y == 2 then
@@ -546,32 +554,32 @@ local function try_open_at_y(y)
 	elseif y > 2 and not scanlist_is_empty() then
 		-- -2 to conform to our scanlist "missing" first 3 indicies
 		y = y - 2
-		if scanlist[y].dirmsg == icons["dir"] or scanlist[y].dirmsg == icons["dir_open"] then
+		if scanlist[y].dirmsg == icons['dir'] or scanlist[y].dirmsg == icons['dir_open'] then
 			-- if passed path is a directory, update the current dir to be one deeper..
 			update_current_dir(scanlist[y].abspath)
 		else
 			-- If it's a file, then open it
-			micro.InfoBar():Message("Filemanager2 opened ", scanlist[y].abspath)
+			micro.InfoBar():Message('Filemanager2 opened ', scanlist[y].abspath)
 			-- Opens the absolute path in new vertical view
 			micro.CurPane():VSplitIndex(buffer.NewBufferFromFile(scanlist[y].abspath), true)
 			-- Resizes all views after opening a file
 			-- tabs[curTab + 1]:Resize()
 		end
 	else
-		micro.InfoBar():Error("Can't open that")
+		micro.InfoBar():Error('Can\'t open that')
 	end
 end
 
 -- Opens the dir's contents nested under itself
 local function uncompress_target(y)
-  local icons = Icons()
+	local icons = Icons()
 
 	-- Exit early if on the top 3 non-list items
 	if y == 0 or scanlist_is_empty() then
 		return
 	end
 	-- Only uncompress if it's a dir and it's not already uncompressed
-	if scanlist[y].dirmsg == icons["dir"] then
+	if scanlist[y].dirmsg == icons['dir'] then
 		-- Get a new scanlist with results from the scan in the target dir
 		local scan_results = get_scanlist(scanlist[y].abspath, y, scanlist[y].indent + 1)
 		-- Don't run any of this if there's nothing in the dir we scanned, pointless
@@ -606,7 +614,7 @@ local function uncompress_target(y)
 		end
 
 		-- Change to minus to signify it's uncompressed
-		scanlist[y].dirmsg = icons["dir_open"]
+		scanlist[y].dirmsg = icons['dir_open']
 
 		-- Check if we actually need to resize, or if we're nesting at the same indent
 		-- Also check if there's anything in the dir, as we don't need to expand on an empty dir
@@ -625,7 +633,7 @@ end
 
 -- Stat a path to check if it exists, returning true/false
 local function path_exists(path)
-	local go_os = import("os")
+	local go_os = import('os')
 	-- Stat the file/dir path we created
 	-- file_stat should be non-nil, and stat_err should be nil on success
 	local file_stat, stat_err = go_os.Stat(path)
@@ -643,9 +651,8 @@ end
 -- Prompts for a new name, then renames the file/dir at the cursor's position
 -- Not local so Micro can use it
 function rename_at_cursor(bp, args)
-
 	if micro.CurPane() ~= tree_view then
-		micro.InfoBar():Message("Rename only works with the cursor in the tree!")
+		micro.InfoBar():Message('Rename only works with the cursor in the tree!')
 		return
 	end
 
@@ -662,7 +669,7 @@ function rename_at_cursor(bp, args)
 	-- Check if they're trying to rename the top stuff
 	if y == 0 then
 		-- Error since they tried to rename the top stuff
-		micro.InfoBar():Message("You can't rename that!")
+		micro.InfoBar():Message('You can\'t rename that!')
 		return
 	end
 
@@ -671,17 +678,17 @@ function rename_at_cursor(bp, args)
 	-- Join the path into their supplied rename, so that we have an absolute path
 	local new_path = dirname_and_join(old_path, new_name)
 	-- Use Go's os package for renaming the file/dir
-	local golib_os = import("os")
+	local golib_os = import('os')
 	-- Actually rename the file
 	local log_out = golib_os.Rename(old_path, new_path)
 	-- Output the log, if any, of the rename
 	if log_out ~= nil then
-		micro.Log("Rename log: ", log_out)
+		micro.Log('Rename log: ', log_out)
 	end
 
 	-- Check if the rename worked
 	if not path_exists(new_path) then
-		micro.InfoBar():Error("Path doesn't exist after rename!")
+		micro.InfoBar():Error('Path doesn\'t exist after rename!')
 		return
 	end
 
@@ -694,10 +701,10 @@ end
 
 -- Prompts the user for the file/dir name, then creates the file/dir using Go's os package
 local function create_filedir(filedir_name, make_dir)
-  local icons = Icons()
+	local icons = Icons()
 
 	if micro.CurPane() ~= tree_view then
-		micro.InfoBar():Message("You can't create a file/dir if your cursor isn't in the tree!")
+		micro.InfoBar():Message('You can\'t create a file/dir if your cursor isn\'t in the tree!')
 		return
 	end
 
@@ -717,7 +724,7 @@ local function create_filedir(filedir_name, make_dir)
 	-- Check there's actually anything in the list, and that they're not on the ".."
 	if not scanlist_empty and y ~= 0 then
 		-- If they're inserting on a folder, don't strip its path
-		if scanlist[y].dirmsg == icons["dir"] or scanlist[y].dirmsg == icons["dir_open"] then
+		if scanlist[y].dirmsg == icons['dir'] or scanlist[y].dirmsg == icons['dir_open'] then
 			-- Join our new file/dir onto the dir
 			filedir_path = filepath.Join(scanlist[y].abspath, filedir_name)
 		else
@@ -731,32 +738,32 @@ local function create_filedir(filedir_name, make_dir)
 
 	-- Check if the name is already taken by a file/dir
 	if path_exists(filedir_path) then
-		micro.InfoBar():Error("You can't create a file/dir with a pre-existing name")
+		micro.InfoBar():Error('You can\'t create a file/dir with a pre-existing name')
 		return
 	end
 
 	-- Use Go's os package for creating the files
-	local golib_os = import("os")
+	local golib_os = import('os')
 	-- Create the dir or file
 	if make_dir then
 		-- Creates the dir
 		golib_os.Mkdir(filedir_path, golib_os.ModePerm)
-		micro.Log("Filemanager2 created directory: " .. filedir_path)
+		micro.Log('Filemanager2 created directory: ' .. filedir_path)
 	else
 		-- Creates the file
 		golib_os.Create(filedir_path)
-		micro.Log("Filemanager2 created file: " .. filedir_path)
+		micro.Log('Filemanager2 created file: ' .. filedir_path)
 	end
 
 	-- If the file we tried to make doesn't exist, fail
 	if not path_exists(filedir_path) then
-		micro.InfoBar():Error("The file/dir creation failed")
+		micro.InfoBar():Error('The file/dir creation failed')
 
 		return
 	end
 
 	-- Creates a sort of default object, to be modified below
-	local new_filedir = new_listobj(filedir_path, (make_dir and icons["dir"] or GetIcon(filedir_name)), 0, 0)
+	local new_filedir = new_listobj(filedir_path, (make_dir and icons['dir'] or GetIcon(filedir_name)), 0, 0)
 	-- Refresh with our new value(s)
 	local last_y
 
@@ -767,11 +774,11 @@ local function create_filedir(filedir_name, make_dir)
 		last_y = tree_view.Cursor.Loc.Y + 1
 
 		-- Only actually add the object to the list if it's not created on an uncompressed folder
-		if scanlist[y].dirmsg == icons["dir"] then
+		if scanlist[y].dirmsg == icons['dir'] then
 			-- Exit early, since it was created into an uncompressed folder
 
 			return
-		elseif scanlist[y].dirmsg == icons["dir_open"] then
+		elseif scanlist[y].dirmsg == icons['dir_open'] then
 			-- Check if created on top of an uncompressed folder
 			-- Change ownership to the folder it was created on top of..
 			-- otherwise, the ownership would be incorrect
@@ -822,7 +829,6 @@ end
 
 -- Triggered with "touch filename"
 function new_file(bp, args)
-
 	-- Safety check they actually passed a name
 	if #args < 1 then
 		micro.InfoBar():Error('When using "touch" you need to input a file name')
@@ -837,7 +843,6 @@ end
 
 -- Triggered with "mkdir dirname"
 function new_dir(bp, args)
-
 	-- Safety check they actually passed a name
 	if #args < 1 then
 		micro.InfoBar():Error('When using "mkdir" you need to input a dir name')
@@ -853,29 +858,29 @@ end
 -- open_tree setup's the view
 local function open_tree()
 	-- Open a new Vsplit (on the very left)
-	micro.CurPane():VSplitIndex(buffer.NewBuffer("", "filemanager2"), false)
+	micro.CurPane():VSplitIndex(buffer.NewBuffer('', 'filemanager2'), false)
 	-- Save the new view so we can access it later
 	tree_view = micro.CurPane()
 
 	-- Set the width of tree_view to 30% & lock it
-    tree_view:ResizePane(30)
+	tree_view:ResizePane(30)
 	-- Set the type to unsavable
-    -- tree_view.Buf.Type = buffer.BTLog
-    tree_view.Buf.Type.Scratch = true
-    tree_view.Buf.Type.Readonly = true
+	-- tree_view.Buf.Type = buffer.BTLog
+	tree_view.Buf.Type.Scratch = true
+	tree_view.Buf.Type.Readonly = true
 
 	-- Set the various display settings, but only on our view (by using SetLocalOption instead of SetOption)
 	-- NOTE: Micro requires the true/false to be a string
 	-- Softwrap long strings (the file/dir paths)
-    tree_view.Buf:SetOptionNative("softwrap", true)
-    -- No line numbering
-    tree_view.Buf:SetOptionNative("ruler", false)
-    -- Is this needed with new non-savable settings from being "vtLog"?
-    tree_view.Buf:SetOptionNative("autosave", false)
-    -- Don't show the statusline to differentiate the view from normal views
-    tree_view.Buf:SetOptionNative("statusformatr", "")
-    tree_view.Buf:SetOptionNative("statusformatl", "filemanager2")
-    tree_view.Buf:SetOptionNative("scrollbar", false)
+	tree_view.Buf:SetOptionNative('softwrap', true)
+	-- No line numbering
+	tree_view.Buf:SetOptionNative('ruler', false)
+	-- Is this needed with new non-savable settings from being "vtLog"?
+	tree_view.Buf:SetOptionNative('autosave', false)
+	-- Don't show the statusline to differentiate the view from normal views
+	tree_view.Buf:SetOptionNative('statusformatr', '')
+	tree_view.Buf:SetOptionNative('statusformatl', 'filemanager2')
+	tree_view.Buf:SetOptionNative('scrollbar', false)
 
 	-- Fill the scanlist, and then print its contents to tree_view
 	update_current_dir(os.Getwd())
@@ -920,7 +925,7 @@ end
 -- Goes up 1 visible directory (if any)
 -- Not local so it can be bound
 function goto_prev_dir()
-  local icons = Icons()
+	local icons = Icons()
 
 	if micro.CurPane() ~= tree_view or scanlist_is_empty() then
 		return
@@ -933,7 +938,7 @@ function goto_prev_dir()
 		for i = cur_y - 1, 1, -1 do
 			move_count = move_count + 1
 			-- If a dir, stop counting
-			if scanlist[i].dirmsg == icons["dir"] or scanlist[i].dirmsg == icons["dir_open"] then
+			if scanlist[i].dirmsg == icons['dir'] or scanlist[i].dirmsg == icons['dir_open'] then
 				-- Jump to its parent (the ownership)
 				tree_view.Cursor:UpN(move_count)
 				select_line()
@@ -946,7 +951,7 @@ end
 -- Goes down 1 visible directory (if any)
 -- Not local so it can be bound
 function goto_next_dir()
-  local icons = Icons()
+	local icons = Icons()
 
 	if micro.CurPane() ~= tree_view or scanlist_is_empty() then
 		return
@@ -964,7 +969,7 @@ function goto_next_dir()
 		for i = cur_y + 1, #scanlist do
 			move_count = move_count + 1
 			-- If a dir, stop counting
-			if scanlist[i].dirmsg == icons["dir"] or scanlist[i].dirmsg == icons["dir_open"] then
+			if scanlist[i].dirmsg == icons['dir'] or scanlist[i].dirmsg == icons['dir_open'] then
 				-- Jump to its parent (the ownership)
 				tree_view.Cursor:DownN(move_count)
 				select_line()
@@ -1187,10 +1192,10 @@ function preInsertTab(view)
 	end
 end
 function preInsertNewline(view)
-    if view == tree_view then
-        return false
-    end
-    return true
+	if view == tree_view then
+		return false
+	end
+	return true
 end
 -- CtrlL
 function onJumpLine(view)
@@ -1258,7 +1263,7 @@ function preStartOfLine(view)
 end
 
 function preStartOfText(view)
-    return false_if_tree(view)
+	return false_if_tree(view)
 end
 
 function preEndOfLine(view)
@@ -1306,7 +1311,7 @@ function preSelectToStartOfLine(view)
 end
 
 function preSelectToStartOfText(view)
-    return false_if_tree(view)
+	return false_if_tree(view)
 end
 
 function preSelectToEndOfLine(view)
@@ -1374,52 +1379,52 @@ function preSelectAll(view)
 end
 
 function init()
-    -- Let the user disable showing of dotfiles like ".editorconfig" or ".DS_STORE"
-    config.RegisterCommonOption("filemanager2", "showdotfiles", true)
-    -- Let the user disable showing files ignored by the VCS (i.e. gitignored)
-    config.RegisterCommonOption("filemanager2", "showignored", true)
-    -- Let the user disable going to parent directory via left arrow key when file selected (not directory)
-    config.RegisterCommonOption("filemanager2", "compressparent", true)
-    -- Let the user choose to list sub-folders first when listing the contents of a folder
-    config.RegisterCommonOption("filemanager2", "foldersfirst", true)
-    -- Lets the user have the filetree auto-open any time Micro is opened
-    -- false by default, as it's a rather noticable user-facing change
-    config.RegisterCommonOption("filemanager2", "openonstart", false)
-    -- Use nerd fonts icons
-    config.RegisterCommonOption("filemanager2", "nerdfonts", false)
+	-- Let the user disable showing of dotfiles like ".editorconfig" or ".DS_STORE"
+	config.RegisterCommonOption('filemanager2', 'showdotfiles', true)
+	-- Let the user disable showing files ignored by the VCS (i.e. gitignored)
+	config.RegisterCommonOption('filemanager2', 'showignored', true)
+	-- Let the user disable going to parent directory via left arrow key when file selected (not directory)
+	config.RegisterCommonOption('filemanager2', 'compressparent', true)
+	-- Let the user choose to list sub-folders first when listing the contents of a folder
+	config.RegisterCommonOption('filemanager2', 'foldersfirst', true)
+	-- Lets the user have the filetree auto-open any time Micro is opened
+	-- false by default, as it's a rather noticable user-facing change
+	config.RegisterCommonOption('filemanager2', 'openonstart', false)
+	-- Use nerd fonts icons
+	config.RegisterCommonOption('filemanager2', 'nerdfonts', false)
 
-    -- Use file icon in status bar
-    micro.SetStatusInfoFn('filemanager2.FileIcon')
+	-- Use file icon in status bar
+	micro.SetStatusInfoFn('filemanager2.FileIcon')
 
-    -- Open/close the tree view
-    config.MakeCommand("tree", toggle_tree, config.NoComplete)
-    -- Rename the file/dir under the cursor
-    config.MakeCommand("rename", rename_at_cursor, config.NoComplete)
-    -- Create a new file
-    config.MakeCommand("touch", new_file, config.NoComplete)
-    -- Create a new dir
-    config.MakeCommand("mkdir", new_dir, config.NoComplete)
-    -- Delete a file/dir, and anything contained in it if it's a dir
-    config.MakeCommand("rm", prompt_delete_at_cursor, config.NoComplete)
-    -- Adds colors to the ".." and any dir's in the tree view via syntax highlighting
-    -- TODO: Change it to work with git, based on untracked/changed/added/whatever
-    config.AddRuntimeFile("filemanager2", config.RTSyntax, "syntax.yaml")
+	-- Open/close the tree view
+	config.MakeCommand('tree', toggle_tree, config.NoComplete)
+	-- Rename the file/dir under the cursor
+	config.MakeCommand('rename', rename_at_cursor, config.NoComplete)
+	-- Create a new file
+	config.MakeCommand('touch', new_file, config.NoComplete)
+	-- Create a new dir
+	config.MakeCommand('mkdir', new_dir, config.NoComplete)
+	-- Delete a file/dir, and anything contained in it if it's a dir
+	config.MakeCommand('rm', prompt_delete_at_cursor, config.NoComplete)
+	-- Adds colors to the ".." and any dir's in the tree view via syntax highlighting
+	-- TODO: Change it to work with git, based on untracked/changed/added/whatever
+	config.AddRuntimeFile('filemanager2', config.RTSyntax, 'syntax.yaml')
 
-    -- NOTE: This must be below the syntax load command or coloring won't work
-    -- Just auto-open if the option is enabled
-    -- This will run when the plugin first loads
-    if config.GetGlobalOption("filemanager2.openonstart") then
-        -- Check for safety on the off-chance someone's init.lua breaks this
-        if tree_view == nil then
-            open_tree()
-            -- Puts the cursor back in the empty view that initially spawns
-            -- This is so the cursor isn't sitting in the tree view at startup
-            micro.CurPane():NextSplit()
-        else
-            -- Log error so they can fix it
-            micro.Log(
-                "Warning: filemanager2.openonstart was enabled, but somehow the tree was already open so the option was ignored."
-            )
-        end
-    end
+	-- NOTE: This must be below the syntax load command or coloring won't work
+	-- Just auto-open if the option is enabled
+	-- This will run when the plugin first loads
+	if config.GetGlobalOption('filemanager2.openonstart') then
+		-- Check for safety on the off-chance someone's init.lua breaks this
+		if tree_view == nil then
+			open_tree()
+			-- Puts the cursor back in the empty view that initially spawns
+			-- This is so the cursor isn't sitting in the tree view at startup
+			micro.CurPane():NextSplit()
+		else
+			-- Log error so they can fix it
+			micro.Log(
+				'Warning: filemanager2.openonstart was enabled, but somehow the tree was already open so the option was ignored.'
+			)
+		end
+	end
 end
