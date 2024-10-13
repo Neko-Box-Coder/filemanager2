@@ -1136,14 +1136,12 @@ function onPreviousSplit(view)
 end
 
 -- On click, open at the click's y
-function preMousePress(view, event)
+function onMousePress(view)
     if view == tree_view then
-        local x, y = event:Position()
-        -- Fixes the y because softwrap messes with it
-        local new_x, new_y = tree_view:GetMouseClickLocation(x, y)
         -- Try to open whatever is at the click's y index
         -- Will go into/back dirs based on what's clicked, nothing gets expanded
-        try_open_at_y(new_y)
+        local y = tree_view.Cursor.Loc.Y
+        try_open_at_y(y)
         -- Don't actually allow the mousepress to trigger, so we avoid highlighting stuff
         return false
     end
