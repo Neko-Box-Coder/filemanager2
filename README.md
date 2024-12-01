@@ -71,6 +71,9 @@ The only fix is to close and open the tree.
 | `filemanager2.foldersfirst`   | Sorts folders above any files                                | `true`  |
 | `filemanager2.openonstart`    | Automatically open the file tree when starting Micro         | `false` |
 | `filemanager2.nerdfonts`      | Use nerd fonts icons                                         | `false` |
+| `filemanager2.showcurrent`     | Show and expand to current file in tree                      | `true`  |
+| `filemanager2.relativepath`    | Use relative paths when possible                            | `true`  |
+| `filemanager2.newtab`          | Open files in new tabs instead of splits                     | `true`  |
 
 ### Commands and Keybindings
 

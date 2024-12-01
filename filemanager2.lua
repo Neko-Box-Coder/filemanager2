@@ -30,6 +30,8 @@ end
 
 -- Holds the micro.CurPane() we're manipulating
 local tree_view = nil
+-- The last bufpane we were using before we open the tree
+local last_buf_pane = nil
 -- Keeps track of the current working directory
 local current_dir = os.Getwd()
 -- Keep track of current highest visible indent to resize width appropriately
@@ -82,6 +84,17 @@ local function is_dir(path)
         -- Nil since we can't read the path
         return nil
     end
+end
+
+-- Turn to relative path if possible
+local function try_convert_rel(path)
+    local wd, err = os.Getwd()
+    if err == nil then
+        local relPath, relErr = filepath.Rel(wd, path)
+        return relPath
+    end
+    
+    return path
 end
 
 -- Returns a list of files (in the target dir) that are ignored by the VCS system (if exists)
@@ -539,6 +552,101 @@ local function go_back_dir()
     end
 end
 
+function open_pane_if_exist(path)
+    local cleanFilepath = filepath.Clean(path)
+    local wd, wdErr = os.Getwd()
+    for i = 1, #micro.Tabs().List do
+        for j = 1, #micro.Tabs().List[i].Panes do
+            local currentPane = micro.Tabs().List[i].Panes[j]
+            local currentBuf = currentPane.Buf
+            
+            -- if currentBuf ~= nil then
+            --     micro.Log("cleanFilepath:", cleanFilepath)
+            --     micro.Log("currentBuf.AbsPath:", currentBuf.AbsPath)
+            --     micro.Log("currentBuf.Path:", currentBuf.Path)
+            -- end
+            
+            if currentBuf ~= nil and currentBuf.AbsPath ~= "" and currentBuf.AbsPath ~= nil then
+                local calculatedAbsPath = filepath.Abs(cleanFilepath)
+                if not filepath.IsAbs(cleanFilepath) and wdErr == nil then
+                    local absPath, absErr = filepath.Abs(filepath.Join(wd, cleanFilepath))
+                    -- micro.Log("absPath:", absPath)
+                    if absErr == nil then
+                        calculatedAbsPath = absPath
+                    end
+                end
+                -- micro.Log("calculatedAbsPath:", calculatedAbsPath)
+                
+                if  filepath.Clean(currentBuf.AbsPath) == calculatedAbsPath or
+                    filepath.Clean(currentBuf.AbsPath) == cleanFilepath or 
+                    filepath.Clean(currentBuf.Path) == cleanFilepath then
+
+                    -- NOTE: SetActive functions has index starting at 0 instead lol
+                    micro.Tabs():SetActive(i - 1)
+                    micro.Tabs().List[i]:SetActive(j - 1)
+                    return true
+                end
+            end
+        end
+    end
+    
+    return false
+end
+
+-- Stat a path to check if it exists, returning true/false
+local function path_exists(path)
+    local go_os = import('os')
+    -- Stat the file/dir path we created
+    -- file_stat should be non-nil, and stat_err should be nil on success
+    local file_stat, stat_err = go_os.Stat(path)
+    -- Check if what we tried to create exists
+    if stat_err ~= nil then
+        -- true/false if the file/dir exists
+        return go_os.IsExist(stat_err)
+    elseif file_stat ~= nil then
+        -- Assume it exists if no errors
+        return true
+    end
+    return false
+end
+
+
+local function is_path_dir(path)
+    -- Stat the file/dir path we created
+    -- file_stat should be non-nil, and stat_err should be nil on success
+    local file_stat, stat_err = os.Stat(path)
+    if stat_err ~= nil then
+        return false
+    elseif file_stat ~= nil then
+        -- Assume it exists if no errors
+        return file_stat:IsDir()
+    end
+    return false
+end
+
+
+function smart_new_tab(path)
+    local cleanFilepath = filepath.Clean(path)
+    
+    -- If current pane is empty, we can open in it
+    if not path_exists(last_buf_pane.Buf.AbsPath) or is_path_dir(last_buf_pane.Buf.AbsPath) then
+        if #last_buf_pane.Buf:Bytes() == 0 then
+            last_buf_pane:OpenCmd({cleanFilepath})
+            return
+        end
+    end
+    
+    -- Otherwise find if there's any existing panes
+    if open_pane_if_exist(cleanFilepath) then
+        return
+    end
+    
+    -- If not just open it
+    local currentActiveIndex = micro.Tabs():Active()
+    last_buf_pane:NewTabCmd({cleanFilepath})
+    last_buf_pane:TabMoveCmd({tostring(currentActiveIndex + 2)})
+end
+
 -- Tries to open the current index
 -- If it's the top dir indicator, or separator, nothing happens
 -- If it's ".." then it tries to go back a dir
@@ -558,10 +666,21 @@ local function try_open_at_y(y)
             -- if passed path is a directory, update the current dir to be one deeper..
             update_current_dir(scanlist[y].abspath)
         else
+            local open_path = scanlist[y].abspath
+            
+            if config.GetGlobalOption('filemanager2.relativepath') then
+                open_path = try_convert_rel(scanlist[y].abspath)
+            end
+            
             -- If it's a file, then open it
-            micro.InfoBar():Message('Filemanager2 opened ', scanlist[y].abspath)
-            -- Opens the absolute path in new vertical view
-            micro.CurPane():VSplitIndex(buffer.NewBufferFromFile(scanlist[y].abspath), true)
+            micro.InfoBar():Message('Filemanager2 opened ', open_path)
+            open_path = filepath.Clean(open_path)
+            if config.GetGlobalOption('filemanager2.newtab') then
+                smart_new_tab(open_path)
+            else
+                micro.CurPane():VSplitIndex(buffer.NewBufferFromFile(open_path), true)
+            end
+
             -- Resizes all views after opening a file
             -- tabs[curTab + 1]:Resize()
         end
@@ -629,23 +748,6 @@ local function uncompress_target(y)
 
         refresh_and_select()
     end
-end
-
--- Stat a path to check if it exists, returning true/false
-local function path_exists(path)
-    local go_os = import('os')
-    -- Stat the file/dir path we created
-    -- file_stat should be non-nil, and stat_err should be nil on success
-    local file_stat, stat_err = go_os.Stat(path)
-    -- Check if what we tried to create exists
-    if stat_err ~= nil then
-        -- true/false if the file/dir exists
-        return go_os.IsExist(stat_err)
-    elseif file_stat ~= nil then
-        -- Assume it exists if no errors
-        return true
-    end
-    return false
 end
 
 -- Prompts for a new name, then renames the file/dir at the cursor's position
@@ -855,8 +957,44 @@ function new_dir(bp, args)
     create_filedir(dir_name, true)
 end
 
+local function try_uncompress_path(path)
+    local target_path = try_convert_rel(path)
+    target_path = filepath.Clean(target_path)
+    local current = current_dir
+    local components = {}
+    
+    -- Split the path into components
+    while target_path ~= current and target_path ~= "/" and target_path ~= "." do
+        table.insert(components, 1, get_basename(target_path))
+        target_path = filepath.Dir(target_path)
+    end
+    
+    -- For each component, find and uncompress the corresponding directory
+    local y = 0
+    for i = 1, #components do
+        -- Search for the component in current level
+        for j = 1, #scanlist do
+            if get_basename(scanlist[j].abspath) == components[i] then
+                y = j
+                -- If it's a directory and not the last component, uncompress it
+                if i < #components and scanlist[j].dirmsg == Icons()['dir'] then
+                    uncompress_target(y)
+                end
+                break
+            end
+        end
+    end
+    
+    -- Move cursor to the final target
+    if y > 0 then
+        tree_view.Cursor.Loc.Y = y + 2  -- +2 to account for header lines
+        select_line()
+    end
+end
+
 -- open_tree setup's the view
 local function open_tree()
+    last_buf_pane = micro.CurPane()
     -- Open a new Vsplit (on the very left)
     micro.CurPane():VSplitIndex(buffer.NewBuffer('', 'filemanager2'), false)
     -- Save the new view so we can access it later
@@ -884,6 +1022,19 @@ local function open_tree()
 
     -- Fill the scanlist, and then print its contents to tree_view
     update_current_dir(os.Getwd())
+    
+    config.RegisterCommonOption('filemanager2', 'showcurrent', true)
+    -- Use relative path is possible
+    config.RegisterCommonOption('filemanager2', 'relativepath', true)
+    -- Open on new tab?
+    config.RegisterCommonOption('filemanager2', 'newtab', true)
+    
+    if config.GetGlobalOption('filemanager2.showcurrent') then
+        -- If there's a valid buffer path, uncompress the tree to reach it
+        if path_exists(last_buf_pane.Buf.AbsPath) then
+            try_uncompress_path(last_buf_pane.Buf.AbsPath)
+        end
+    end
 end
 
 function onBufPaneOpen(bp)
@@ -902,7 +1053,7 @@ end
 -- close_tree will close the tree plugin view and release memory.
 local function close_tree()
     if tree_view ~= nil then
-        tree_view:Quit()
+        tree_view:Unsplit()
         tree_view = nil
         clear_messenger()
     end
@@ -1403,6 +1554,12 @@ function init()
     config.RegisterCommonOption('filemanager2', 'openonstart', false)
     -- Use nerd fonts icons
     config.RegisterCommonOption('filemanager2', 'nerdfonts', false)
+    -- Shows the current file directory
+    config.RegisterCommonOption('filemanager2', 'showcurrent', true)
+    -- Use relative path is possible
+    config.RegisterCommonOption('filemanager2', 'relativepath', true)
+    -- Open on new tab?
+    config.RegisterCommonOption('filemanager2', 'newtab', true)
 
     -- Use file icon in status bar
     micro.SetStatusInfoFn('filemanager2.FileIcon')
