@@ -31,19 +31,18 @@ Add this repo as a **pluginrepos** option in the **~/.config/micro/settings.json
 ```json
 {
   "pluginrepos": [
-      "https://codeberg.org/micro-plugins/filemanager2/raw/branch/main/repo.json"
+      "https://raw.githubusercontent.com/Neko-Box-Coder/filemanager2/main/repo.json"
   ]
 }
 ```
 
 ### Install
-In your micro editor press **Ctrl-e** and run command:
 
-Run in your shell
+Run in your shell:
 ```sh
 micro -plugin install filemanager2
 ```
-or run this and restart Micro
+or press `Ctrl-e` in micro and run this (and restart micro afterwards):
 ```
 > plugin install filemanager2
 ```
