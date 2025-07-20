@@ -76,6 +76,13 @@ The only fix is to close and open the tree.
 | `filemanager2.treewidth`     | Default tree width percent                                   | `30`    |
 | `filemanager2.lengthfactor`  | Multiplier on tree width depending on how long the line is   | `0.3`   |
 
+In addition to this, you can also get the file icon in the status bar by calling `filemanager2.FileIcon`, 
+for example
+
+```json
+"statusformatl": "$(filemanager2.FileIcon) $(filename)$(modified)",
+```
+
 
 ### Commands and Keybindings
 
