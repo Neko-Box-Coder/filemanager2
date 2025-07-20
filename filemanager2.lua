@@ -1044,11 +1044,18 @@ local function close_tree()
 end
 
 -- toggle_tree will toggle the tree view visible (create) and hide (delete).
-function toggle_tree()
+function toggle_tree(bp)
     if tree_view == nil then
         open_tree()
     else
-        close_tree()
+        -- If the file tree share the same tab, close the tree, 
+        -- otherwise just move the tree to current tab
+        if bp:Tab() == tree_view:Tab() then
+            close_tree()
+        else
+            close_tree()
+            open_tree()
+        end
     end
 end
 

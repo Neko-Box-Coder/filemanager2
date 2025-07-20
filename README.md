@@ -95,7 +95,7 @@ any of the operations/commands, bind to the labeled API in the table below.
 
 | Command  | Keybinding(s)              | What it does                                                                                | API for `bindings.json`               |
 | :------- | :------------------------- | :------------------------------------------------------------------------------------------ | :------------------------------------ |
-| `tree`   | -                          | Open/close the tree                                                                         | `filemanager2.toggle_tree`             |
+| `tree`   | -                          | Open/close the tree, or moves to the tree to current tab if opened in different tab         | `filemanager2.toggle_tree`             |
 | -        | <kbd>Tab</kbd> & MouseLeft | Open a file, or go into the directory. Goes back a dir if on `..`                           | `filemanager2.try_open_at_cursor`      |
 | -        | <kbd>→</kbd>               | Expand directory in tree listing                                                            | `filemanager2.uncompress_at_cursor`    |
 | -        | <kbd>←</kbd>               | Collapse directory listing                                                                  | `filemanager2.compress_at_cursor`      |
