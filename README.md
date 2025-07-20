@@ -64,15 +64,18 @@ The only fix is to close and open the tree.
 
 | Option                       | Purpose                                                      | Default |
 | :--------------------------- | :----------------------------------------------------------- | :------ |
-| `filemanager2.showdotfiles`   | Show dotfiles (hidden if false)                              | `true`  |
-| `filemanager2.showignored`    | Show gitignore'd files (hidden if false)                     | `true`  |
-| `filemanager2.compressparent` | Collapse the parent dir when left is pressed on a child file | `true`  |
-| `filemanager2.foldersfirst`   | Sorts folders above any files                                | `true`  |
-| `filemanager2.openonstart`    | Automatically open the file tree when starting Micro         | `false` |
-| `filemanager2.nerdfonts`      | Use nerd fonts icons                                         | `false` |
-| `filemanager2.showcurrent`     | Show and expand to current file in tree                      | `true`  |
-| `filemanager2.relativepath`    | Use relative paths when possible                            | `true`  |
-| `filemanager2.newtab`          | Open files in new tabs instead of splits                     | `true`  |
+| `filemanager2.showdotfiles`  | Show dotfiles (hidden if false)                              | `true`  |
+| `filemanager2.showignored`   | Show gitignore'd files (hidden if false)                     | `true`  |
+| `filemanager2.compressparent`| Collapse the parent dir when left is pressed on a child file | `true`  |
+| `filemanager2.foldersfirst`  | Sorts folders above any files                                | `true`  |
+| `filemanager2.openonstart`   | Automatically open the file tree when starting Micro         | `false` |
+| `filemanager2.nerdfonts`     | Use nerd fonts icons                                         | `false` |
+| `filemanager2.showcurrent`   | Show and expand to current file in tree                      | `true`  |
+| `filemanager2.relativepath`  | Use relative paths when possible                             | `true`  |
+| `filemanager2.newtab`        | Open files in new tabs instead of splits                     | `true`  |
+| `filemanager2.treewidth`     | Default tree width percent                                   | `30`    |
+| `filemanager2.lengthfactor`  | Multiplier on tree width depending on how long the line is   | `0.3`   |
+
 
 ### Commands and Keybindings
 

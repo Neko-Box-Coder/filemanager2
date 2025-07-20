@@ -35,9 +35,13 @@ local last_buf_pane = nil
 -- Keeps track of the current working directory
 local current_dir = os.Getwd()
 -- Keep track of current highest visible indent to resize width appropriately
-local highest_visible_indent = 0
+
 -- Holds a table of paths -- objects from new_listobj() calls
 local scanlist = {}
+
+local tree_width = 30
+local line_length_factor = 0.3
+
 
 -- Get a new object used when adding to scanlist
 local function new_listobj(p, d, o, i)
@@ -294,12 +298,6 @@ local function refresh_view()
 
     clear_messenger()
 
-    -- If it's less than 30, just use 30 for width. Don't want it too small
-
-    if tree_view:GetView().Width < 30 then
-        tree_view:ResizePane(30)
-    end
-
     -- Delete everything in the view/buffer
     tree_view.Buf.EventHandler:Remove(tree_view.Buf:Start(), tree_view.Buf:End())
 
@@ -313,6 +311,7 @@ local function refresh_view()
 
     -- Holds the current basename of the path (purely for display)
     local display_content
+    local highest_length = 0
 
     -- NOTE: might want to not do all these concats in the loop, it can get slow
     for i = 1, #scanlist do
@@ -337,11 +336,18 @@ local function refresh_view()
         if i < #scanlist then
             display_content = display_content .. '\n'
         end
+        
+        if display_content:len() > highest_length then
+            highest_length = display_content:len()
+        end
 
         -- Insert line-by-line to avoid out-of-bounds on big folders
         -- +2 so we skip the 0/1/2 positions that hold the top dir/separator/..
         tree_view.Buf.EventHandler:Insert(buffer.Loc(0, i + 2), display_content)
     end
+
+    -- Update pane width
+    tree_view:ResizePane(tree_width + highest_length * line_length_factor)
 
     -- Resizes all views after messing with ours
     tree_view:Tab():Resize()
@@ -401,11 +407,7 @@ local function compress_target(y, delete_y)
                             -- Add the index to stuff to delete, since it holds nested content
                             delete_under[#delete_under + 1] = i
                         end
-                        -- See if we're on the "deepest" nested content
-                        if scanlist[i].indent == highest_visible_indent and scanlist[i].indent > 0 then
-                            -- Save the lower indent, since we're minimizing/deleting nested dirs
-                            highest_visible_indent = highest_visible_indent - 1
-                        end
+                        
                         -- Nothing else to do, so break this inner loop
                         break
                     end
@@ -464,11 +466,6 @@ local function compress_target(y, delete_y)
         scanlist = second_table
     end
 
-    if tree_view:GetView().Width > (30 + highest_visible_indent) then
-        -- Shave off some width
-        tree_view:ResizePane(30 + highest_visible_indent)
-    end
-
     refresh_and_select()
 end
 
@@ -516,9 +513,8 @@ end
 -- then scans that dir, and prints it to the view
 local function update_current_dir(path)
     -- Clear the highest since this is a full refresh
-    highest_visible_indent = 0
-    -- Set the width back to 30
-    tree_view:ResizePane(30)
+    -- Set the width back to tree_width
+    tree_view:ResizePane(tree_width)
     -- Update the current dir to the new path
     current_dir = path
 
@@ -734,18 +730,6 @@ local function uncompress_target(y)
 
         -- Change to minus to signify it's uncompressed
         scanlist[y].dirmsg = icons['dir_open']
-
-        -- Check if we actually need to resize, or if we're nesting at the same indent
-        -- Also check if there's anything in the dir, as we don't need to expand on an empty dir
-        if scan_results ~= nil then
-            if scanlist[y].indent > highest_visible_indent and #scan_results >= 1 then
-                -- Save the new highest indent
-                highest_visible_indent = scanlist[y].indent
-                -- Increase the width to fit the new nested content
-                tree_view:ResizePane(tree_view:GetView().Width + scanlist[y].indent)
-            end
-        end
-
         refresh_and_select()
     end
 end
@@ -1000,8 +984,8 @@ local function open_tree()
     -- Save the new view so we can access it later
     tree_view = micro.CurPane()
 
-    -- Set the width of tree_view to 30% & lock it
-    tree_view:ResizePane(30)
+    -- Set the width of tree_view to tree_width & lock it
+    tree_view:ResizePane(tree_width)
     -- Set the type to unsavable
     -- tree_view.Buf.Type = buffer.BTLog
     tree_view.Buf.Type.Scratch = true
@@ -1039,13 +1023,13 @@ end
 
 function onBufPaneOpen(bp)
     if tree_view ~= nil and bp ~= tree_view then
-        tree_view:ResizePane(30)
+        tree_view:ResizePane(tree_width)
     end
 end
 
 function onQuit(bp)
     if tree_view ~= nil and bp ~= tree_view then
-        tree_view:ResizePane(30)
+        tree_view:ResizePane(tree_width)
     end
 end
 
@@ -1560,7 +1544,10 @@ function init()
     config.RegisterCommonOption('filemanager2', 'relativepath', true)
     -- Open on new tab?
     config.RegisterCommonOption('filemanager2', 'newtab', true)
-
+    -- Default tree width
+    config.RegisterCommonOption('filemanager2', 'treewidth', 30)
+    config.RegisterCommonOption('filemanager2', 'lengthfactor', 0.3)
+    
     -- Use file icon in status bar
     micro.SetStatusInfoFn('filemanager2.FileIcon')
 
@@ -1577,6 +1564,9 @@ function init()
     -- Adds colors to the ".." and any dir's in the tree view via syntax highlighting
     -- TODO: Change it to work with git, based on untracked/changed/added/whatever
     config.AddRuntimeFile('filemanager2', config.RTSyntax, 'syntax/filemanager2.yaml')
+
+    tree_width = config.GetGlobalOption('filemanager2.treewidth')
+    line_length_factor = config.GetGlobalOption('filemanager2.lengthfactor')
 
     -- NOTE: This must be below the syntax load command or coloring won't work
     -- Just auto-open if the option is enabled
