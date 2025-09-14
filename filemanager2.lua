@@ -1012,13 +1012,6 @@ local function open_tree()
 
     -- Fill the scanlist, and then print its contents to tree_view
     update_current_dir(os.Getwd())
-    
-    config.RegisterCommonOption('filemanager2', 'showcurrent', true)
-    -- Use relative path is possible
-    config.RegisterCommonOption('filemanager2', 'relativepath', true)
-    -- Open on new tab?
-    config.RegisterCommonOption('filemanager2', 'newtab', true)
-    
     if config.GetGlobalOption('filemanager2.showcurrent') then
         -- If there's a valid buffer path, uncompress the tree to reach it
         if path_exists(last_buf_pane.Buf.AbsPath) then
