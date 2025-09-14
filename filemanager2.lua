@@ -740,6 +740,41 @@ local function uncompress_target(y)
     end
 end
 
+local function try_uncompress_path(path)
+    local target_path = try_convert_rel(path)
+    target_path = filepath.Clean(target_path)
+    local current = current_dir
+    local components = {}
+    
+    -- Split the path into components
+    while target_path ~= current and target_path ~= "/" and target_path ~= "." do
+        table.insert(components, 1, get_basename(target_path))
+        target_path = filepath.Dir(target_path)
+    end
+    
+    -- For each component, find and uncompress the corresponding directory
+    local y = 0
+    for i = 1, #components do
+        -- Search for the component in current level
+        for j = 1, #scanlist do
+            if get_basename(scanlist[j].abspath) == components[i] then
+                y = j
+                -- If it's a directory and not the last component, uncompress it
+                if i < #components and scanlist[j].dirmsg == Icons()['dir'] then
+                    uncompress_target(y)
+                end
+                break
+            end
+        end
+    end
+    
+    -- Move cursor to the final target
+    if y > 0 then
+        tree_view.Cursor.Loc.Y = y + 2  -- +2 to account for header lines
+        select_line()
+    end
+end
+
 -- Prompts for a new name, then renames the file/dir at the cursor's position
 -- Not local so Micro can use it
 function rename_at_cursor(bp, args)
@@ -947,40 +982,6 @@ function new_dir(bp, args)
     create_filedir(dir_name, true)
 end
 
-local function try_uncompress_path(path)
-    local target_path = try_convert_rel(path)
-    target_path = filepath.Clean(target_path)
-    local current = current_dir
-    local components = {}
-    
-    -- Split the path into components
-    while target_path ~= current and target_path ~= "/" and target_path ~= "." do
-        table.insert(components, 1, get_basename(target_path))
-        target_path = filepath.Dir(target_path)
-    end
-    
-    -- For each component, find and uncompress the corresponding directory
-    local y = 0
-    for i = 1, #components do
-        -- Search for the component in current level
-        for j = 1, #scanlist do
-            if get_basename(scanlist[j].abspath) == components[i] then
-                y = j
-                -- If it's a directory and not the last component, uncompress it
-                if i < #components and scanlist[j].dirmsg == Icons()['dir'] then
-                    uncompress_target(y)
-                end
-                break
-            end
-        end
-    end
-    
-    -- Move cursor to the final target
-    if y > 0 then
-        tree_view.Cursor.Loc.Y = y + 2  -- +2 to account for header lines
-        select_line()
-    end
-end
 
 -- open_tree setup's the view
 local function open_tree()
