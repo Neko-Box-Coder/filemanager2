@@ -304,14 +304,16 @@ local function refresh_view()
     -- Insert the top 3 things that are always there
     -- Current dir
     tree_view.Buf.EventHandler:Insert(buffer.Loc(0, 0), current_dir .. '\n')
+    
     -- An ASCII separator
     tree_view.Buf.EventHandler:Insert(buffer.Loc(0, 1), repeat_str('─', tree_view:GetView().Width) .. '\n')
+    
     -- The ".." and use a newline if there are things in the current dir
     tree_view.Buf.EventHandler:Insert(buffer.Loc(0, 2), (#scanlist > 0 and '..\n' or '..'))
 
     -- Holds the current basename of the path (purely for display)
     local display_content
-    local highest_length = 0
+    local highest_length = string.len(current_dir)
 
     -- NOTE: might want to not do all these concats in the loop, it can get slow
     for i = 1, #scanlist do
@@ -337,8 +339,8 @@ local function refresh_view()
             display_content = display_content .. '\n'
         end
         
-        if display_content:len() > highest_length then
-            highest_length = display_content:len()
+        if string.len(display_content) > highest_length then
+            highest_length = string.len(display_content)
         end
 
         -- Insert line-by-line to avoid out-of-bounds on big folders
@@ -348,6 +350,10 @@ local function refresh_view()
 
     -- Update pane width
     tree_view:ResizePane(tree_width + highest_length * line_length_factor)
+
+    -- Update ASCII separator again
+    tree_view.Buf.EventHandler:Replace(buffer.Loc(0, 1), buffer.Loc(99999, 1), 
+        repeat_str('─', tree_view:GetView().Width * 0.85))
 
     -- Resizes all views after messing with ours
     tree_view:Tab():Resize()
