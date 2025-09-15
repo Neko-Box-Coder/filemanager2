@@ -827,17 +827,19 @@ function rename_at_cursor(bp, args)
 end
 
 -- Prompts the user for the file/dir name, then creates the file/dir using Go's os package
-local function create_filedir(filedir_name, make_dir)
+local function create_filedir(filedir_name, make_dir, do_copy)
     local icons = Icons()
+    local create_or_copy = (do_copy and {"copy"} or {"create"})[1]
 
     if micro.CurPane() ~= tree_view then
-        micro.InfoBar():Message('You can\'t create a file/dir if your cursor isn\'t in the tree!')
+        micro.InfoBar():Message('You can\'t ' .. create_or_copy .. ' a file/dir if your cursor ' .. 
+                                'isn\'t in the tree!')
         return
     end
 
     -- Safety check they passed a name
     if filedir_name == nil then
-        micro.InfoBar():Error('You need to input a name when using "touch" or "mkdir"!')
+        micro.InfoBar():Error('You need to input a name!')
         return
     end
 
@@ -852,8 +854,13 @@ local function create_filedir(filedir_name, make_dir)
     if not scanlist_empty and y ~= 0 then
         -- If they're inserting on a folder, don't strip its path
         if scanlist[y].dirmsg == icons['dir'] or scanlist[y].dirmsg == icons['dir_open'] then
-            -- Join our new file/dir onto the dir
-            filedir_path = filepath.Join(scanlist[y].abspath, filedir_name)
+            -- Join our new file/dir onto the dir if we are creating new files
+            if not do_copy then
+                filedir_path = filepath.Join(scanlist[y].abspath, filedir_name)
+            -- Otherwise just use current directory
+            else
+                filedir_path = dirname_and_join(scanlist[y].abspath, filedir_name)
+            end
         else
             -- The current index is a file, so strip its name and join ours onto it
             filedir_path = dirname_and_join(scanlist[y].abspath, filedir_name)
@@ -865,21 +872,68 @@ local function create_filedir(filedir_name, make_dir)
 
     -- Check if the name is already taken by a file/dir
     if path_exists(filedir_path) then
-        micro.InfoBar():Error('You can\'t create a file/dir with a pre-existing name')
+        micro.InfoBar():Error('You can\'t ' .. create_or_copy .. ' a file/dir with a pre-existing name')
         return
     end
 
-    -- Use Go's os package for creating the files
+    
     local golib_os = import('os')
-    -- Create the dir or file
-    if make_dir then
-        -- Creates the dir
-        golib_os.Mkdir(filedir_path, golib_os.ModePerm)
-        micro.Log('Filemanager2 created directory: ' .. filedir_path)
+    
+    -- If the parent directory of target doesn't exist, create it
+    if not path_exists(filepath.Dir(filedir_path)) then
+        local err = golib_os.MkdirAll(filepath.Dir(filedir_path), golib_os.ModePerm)
+        if err ~= nil then
+            micro.InfoBar():Error(err)
+        end
+    end
+
+    local runtime = import('runtime')
+    -- Copy file/dir in shell
+    if do_copy then
+        if scanlist_empty or y == 0 then
+            micro.InfoBar():Error('Nothing is selected for copying')
+            return
+        end
+        
+        local is_selected_dir = false
+        if scanlist[y].dirmsg == icons['dir'] or scanlist[y].dirmsg == icons['dir_open'] then
+            is_selected_dir = true
+        end
+        
+        -- NOTE: Surprising, go doesn't have a method for copying stuff until 2024... wow.
+        local copy_cmd = ""
+        if is_selected_dir then
+            if runtime.GOOS == "windows" then
+                copy_cmd = "xcopy \"" .. scanlist[y].abspath .. "\" \"" .. filedir_path .. "\" /s /i/e /h /y"
+            -- Unix
+            else
+                copy_cmd = "cp -R \"" .. scanlist[y].abspath .. "\" \"" .. filedir_path .. "\""
+            end
+        else
+            if runtime.GOOS == "windows" then
+                copy_cmd = "cmd /s /v:on /c copy \"" .. scanlist[y].abspath .. "\" \"" .. filedir_path .. "\" /y"
+            -- Unix
+            else
+                copy_cmd = "cp \"" .. scanlist[y].abspath .. "\" \"" .. filedir_path .. "\""
+            end
+        end
+        local output, err = shell.RunCommand(copy_cmd)
+        if err ~= nil then
+            micro.InfoBar():Error(err, " with command " .. copy_cmd .. " with output " .. output)
+            return
+        end
+    -- Use Go's os package for creating the files
     else
-        -- Creates the file
-        golib_os.Create(filedir_path)
-        micro.Log('Filemanager2 created file: ' .. filedir_path)
+        -- Create the dir or file
+        if make_dir then
+            -- Creates the dir
+            golib_os.Mkdir(filedir_path, golib_os.ModePerm)
+            micro.Log('Filemanager2 created directory: ' .. filedir_path)
+        else
+            -- Creates the file
+            golib_os.Create(filedir_path)
+            micro.Log('Filemanager2 created file: ' .. filedir_path)
+        end
     end
 
     -- If the file we tried to make doesn't exist, fail
@@ -918,7 +972,7 @@ function new_file(bp, args)
     local file_name = args[1]
 
     -- False because not a dir
-    create_filedir(file_name, false)
+    create_filedir(file_name, false, false)
 end
 
 -- Triggered with "mkdir dirname"
@@ -932,9 +986,19 @@ function new_dir(bp, args)
     local dir_name = args[1]
 
     -- True because dir
-    create_filedir(dir_name, true)
+    create_filedir(dir_name, true, false)
 end
 
+function copy(bp, args)
+    -- Safety check they actually passed a name
+    if #args < 1 then
+        micro.InfoBar():Error('When using "cp" you need to input the new file/dir name')
+        return
+    end
+
+    local new_name = args[1]
+    create_filedir(new_name, true, true)
+end
 
 -- open_tree setup's the view
 local function open_tree()
@@ -1521,6 +1585,9 @@ function init()
     config.MakeCommand('mkdir', new_dir, config.NoComplete)
     -- Delete a file/dir, and anything contained in it if it's a dir
     config.MakeCommand('rm', prompt_delete_at_cursor, config.NoComplete)
+    -- Copy the file/dir under the cursor
+    config.MakeCommand('cp', copy, config.NoComplete)
+    
     -- Adds colors to the ".." and any dir's in the tree view via syntax highlighting
     -- TODO: Change it to work with git, based on untracked/changed/added/whatever
     config.AddRuntimeFile('filemanager2', config.RTSyntax, 'syntax/filemanager2.yaml')

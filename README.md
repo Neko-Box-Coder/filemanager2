@@ -93,8 +93,8 @@ If you want to
 [keybind](https://github.com/zyedidia/micro/blob/master/runtime/help/keybindings.md#rebinding-keys) 
 any of the operations/commands, bind to the labeled API in the table below.
 
-| Command  | Keybinding(s)              | What it does                                                                                | API for `bindings.json`               |
-| :------- | :------------------------- | :------------------------------------------------------------------------------------------ | :------------------------------------ |
+| Command  | Keybinding(s)              | What it does                                                                                | API for `bindings.json`                |
+| :------- | :------------------------- | :------------------------------------------------------------------------------------------ | :------------------------------------- |
 | `tree`   | -                          | Open/close the tree, or moves to the tree to current tab if opened in different tab         | `filemanager2.toggle_tree`             |
 | -        | <kbd>Tab</kbd> & MouseLeft | Open a file, or go into the directory. Goes back a dir if on `..`                           | `filemanager2.try_open_at_cursor`      |
 | -        | <kbd>→</kbd>               | Expand directory in tree listing                                                            | `filemanager2.uncompress_at_cursor`    |
@@ -106,6 +106,7 @@ any of the operations/commands, bind to the labeled API in the table below.
 | `rename` | -                          | Rename the file/directory your cursor is on, using the passed name                          | `filemanager2.rename_at_cursor`        |
 | `touch`  | -                          | Make a new file under/into the file/directory your cursor is on, using the passed name      | `filemanager2.new_file`                |
 | `mkdir`  | -                          | Make a new directory under/into the file/directory your cursor is on, using the passed name | `filemanager2.new_dir`                 |
+| `cp`     | -                          | Copy the file/directory your cursor is on with the passed path as destination file/dir      | `filemanager2.copy`                    |
 
 #### Notes
 
