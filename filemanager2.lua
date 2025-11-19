@@ -763,7 +763,10 @@ local function try_uncompress_path(path)
                 if i < #components and scanlist[j].dirmsg == Icons()['dir'] then
                     uncompress_target(y)
                 end
-                break
+                
+                -- TODO: If the same name appear more than once, this will fail. 
+                --       Temp fix for now is to just uncompress all matching dir, but this is inefficient
+                -- break
             end
         end
     end
@@ -904,7 +907,7 @@ local function create_filedir(filedir_name, make_dir, do_copy)
         local copy_cmd = ""
         if is_selected_dir then
             if runtime.GOOS == "windows" then
-                copy_cmd = "xcopy \"" .. scanlist[y].abspath .. "\" \"" .. filedir_path .. "\" /s /i/e /h /y"
+                copy_cmd = "xcopy \"" .. scanlist[y].abspath .. "\" \"" .. filedir_path .. "\" /s /i /e /h /y"
             -- Unix
             else
                 copy_cmd = "cp -R \"" .. scanlist[y].abspath .. "\" \"" .. filedir_path .. "\""
