@@ -1063,6 +1063,37 @@ function onBufPaneOpen(bp)
     end
 end
 
+function onSetActive(bp)
+    if  tree_view ~= nil and 
+        bp ~= tree_view and 
+        tree_view:Tab() ~= bp:Tab() and 
+        config.GetGlobalOption('filemanager2.persist') then
+        
+        toggle_tree(bp)
+        
+        local activeIdx = 1
+        for i = 1, #bp:Tab().Panes do
+            if bp:Tab().Panes[i] == bp then
+                activeIdx = i
+                break
+            end
+        end
+        bp:Tab():SetActive(activeIdx - 1)
+    end
+    
+    if tree_view ~= nil and bp ~= tree_view and config.GetGlobalOption('filemanager2.showcurrent') then
+        -- If there's a valid buffer path, uncompress the tree to reach it
+        if  bp.Buf.AbsPath ~= "" and 
+            path_exists(bp.Buf.AbsPath) and 
+            not is_path_dir(bp.Buf.AbsPath) then
+            
+            -- Fill the scanlist, and then print its contents to tree_view
+            update_current_dir(os.Getwd())
+            try_uncompress_path(bp.Buf.AbsPath)
+        end
+    end
+end
+
 function onQuit(bp)
     if tree_view ~= nil and bp ~= tree_view then
         tree_view:ResizePane(tree_width)
@@ -1073,8 +1104,9 @@ end
 -- close_tree will close the tree plugin view and release memory.
 local function close_tree()
     if tree_view ~= nil then
-        tree_view:Unsplit()
+        local view_to_close = tree_view
         tree_view = nil
+        view_to_close:Unsplit()
         clear_messenger()
     end
 end
@@ -1590,6 +1622,8 @@ function init()
     -- Default tree width
     config.RegisterCommonOption('filemanager2', 'treewidth', 30)
     config.RegisterCommonOption('filemanager2', 'lengthfactor', 0.3)
+    -- Persistent filemanager
+    config.RegisterCommonOption('filemanager2', 'persist', true)
     -- Show working directory path or not
     config.RegisterCommonOption('filemanager2', 'workingdir', true)
     
