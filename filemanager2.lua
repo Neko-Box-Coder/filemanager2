@@ -303,7 +303,13 @@ local function refresh_view()
 
     -- Insert the top 3 things that are always there
     -- Current dir
-    tree_view.Buf.EventHandler:Insert(buffer.Loc(0, 0), current_dir .. '\n')
+    local highest_length = 1
+    if config.GetGlobalOption('filemanager2.workingdir') then
+        tree_view.Buf.EventHandler:Insert(buffer.Loc(0, 0), current_dir .. '\n')
+        highest_length = string.len(current_dir)
+    else
+        tree_view.Buf.EventHandler:Insert(buffer.Loc(0, 0), '\n')
+    end
     
     -- An ASCII separator
     tree_view.Buf.EventHandler:Insert(buffer.Loc(0, 1), repeat_str('─', tree_view:GetView().Width) .. '\n')
@@ -313,7 +319,6 @@ local function refresh_view()
 
     -- Holds the current basename of the path (purely for display)
     local display_content
-    local highest_length = string.len(current_dir)
 
     -- NOTE: might want to not do all these concats in the loop, it can get slow
     for i = 1, #scanlist do
@@ -1585,6 +1590,8 @@ function init()
     -- Default tree width
     config.RegisterCommonOption('filemanager2', 'treewidth', 30)
     config.RegisterCommonOption('filemanager2', 'lengthfactor', 0.3)
+    -- Show working directory path or not
+    config.RegisterCommonOption('filemanager2', 'workingdir', true)
     
     -- Use file icon in status bar
     micro.SetStatusInfoFn('filemanager2.FileIcon')
