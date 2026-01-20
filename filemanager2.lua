@@ -1006,8 +1006,19 @@ end
 -- open_tree setup's the view
 local function open_tree()
     last_buf_pane = micro.CurPane()
+    
+    -- Find the left most pane
+    local left_most_index = 1
+    local min_x = last_buf_pane:Tab().Panes[1]:BufView().X
+    for i = 1, #last_buf_pane:Tab().Panes do
+        if last_buf_pane:Tab().Panes[i]:BufView().X < min_x then
+            left_most_index = i
+            min_x = last_buf_pane:Tab().Panes[i]:BufView().X
+        end
+    end
+    
     -- Open a new Vsplit (on the very left)
-    micro.CurPane():VSplitIndex(buffer.NewBuffer('', 'filemanager2'), false)
+    last_buf_pane:Tab().Panes[left_most_index]:VSplitIndex(buffer.NewBuffer('', 'filemanager2'), false)
     -- Save the new view so we can access it later
     tree_view = micro.CurPane()
 
