@@ -41,6 +41,7 @@ local scanlist = {}
 
 local tree_width = 30
 local line_length_factor = 0.3
+local on_set_active_guard = false
 
 
 -- Get a new object used when adding to scanlist
@@ -651,7 +652,10 @@ function smart_new_tab(path)
     -- If not just open it
     local currentActiveIndex = micro.Tabs():Active()
     last_buf_pane:NewTabCmd({cleanFilepath})
-    last_buf_pane:TabMoveCmd({tostring(currentActiveIndex + 2)})
+    
+    on_set_active_guard = true
+        last_buf_pane:TabMoveCmd({tostring(currentActiveIndex + 2)})
+    on_set_active_guard = false
 end
 
 -- Tries to open the current index
@@ -1064,13 +1068,20 @@ function onBufPaneOpen(bp)
 end
 
 function onSetActive(bp)
+    if bp == tree_view then
+        return
+    end
+    
+    if on_set_active_guard then
+        return
+    end
+    on_set_active_guard = true
+    
     if  tree_view ~= nil and 
-        bp ~= tree_view and 
         tree_view:Tab() ~= bp:Tab() and 
         config.GetGlobalOption('filemanager2.persist') then
         
         toggle_tree(bp)
-        
         local activeIdx = 1
         for i = 1, #bp:Tab().Panes do
             if bp:Tab().Panes[i] == bp then
@@ -1081,7 +1092,7 @@ function onSetActive(bp)
         bp:Tab():SetActive(activeIdx - 1)
     end
     
-    if tree_view ~= nil and bp ~= tree_view and config.GetGlobalOption('filemanager2.showcurrent') then
+    if tree_view ~= nil and config.GetGlobalOption('filemanager2.showcurrent') then
         -- If there's a valid buffer path, uncompress the tree to reach it
         if  bp.Buf.AbsPath ~= "" and 
             path_exists(bp.Buf.AbsPath) and 
@@ -1092,6 +1103,8 @@ function onSetActive(bp)
             try_uncompress_path(bp.Buf.AbsPath)
         end
     end
+    
+    on_set_active_guard = false
 end
 
 function onQuit(bp)
