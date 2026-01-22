@@ -664,7 +664,7 @@ end
 -- If it's a dir then it moves into the dir and refreshes
 -- If it's actually a file, open it in a new vsplit
 -- THIS EXPECTS ZERO-BASED Y
-local function try_open_at_y(y)
+local function try_open_at_y(y, force_cd)
     local icons = Icons()
 
     -- 2 is the zero-based index of ".."
@@ -675,7 +675,11 @@ local function try_open_at_y(y)
         y = y - 2
         if scanlist[y].dirmsg == icons['dir'] or scanlist[y].dirmsg == icons['dir_open'] then
             -- if passed path is a directory, update the current dir to be one deeper..
-            update_current_dir(scanlist[y].abspath)
+            if force_cd then
+                update_current_dir(scanlist[y].abspath)
+            else
+                toggle_compress(y)
+            end
         else
             local open_path = scanlist[y].abspath
             
@@ -701,7 +705,7 @@ local function try_open_at_y(y)
 end
 
 -- Opens the dir's contents nested under itself
-local function uncompress_target(y)
+function uncompress_target(y)
     local icons = Icons()
 
     -- Exit early if on the top 3 non-list items
@@ -746,6 +750,21 @@ local function uncompress_target(y)
         -- Change to minus to signify it's uncompressed
         scanlist[y].dirmsg = icons['dir_open']
         refresh_and_select()
+    end
+end
+
+function toggle_compress(y)
+    local icons = Icons()
+
+    -- Exit early if on the top 3 non-list items
+    if y == 0 or scanlist_is_empty() then
+        return
+    end
+    -- Only uncompress if it's a dir and it's not already uncompressed
+    if scanlist[y].dirmsg == icons['dir'] then
+        uncompress_target(y)
+    elseif scanlist[y].dirmsg == icons['dir_open'] then
+        compress_target(y, false)
     end
 end
 
@@ -1236,7 +1255,11 @@ function try_open_at_cursor()
         return
     end
 
-    try_open_at_y(tree_view.Cursor.Loc.Y)
+    try_open_at_y(tree_view.Cursor.Loc.Y, false)
+end
+
+function try_expand_or_open_at_cursor()
+    try_open_at_y(tree_view.Cursor.Loc.Y, true)
 end
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1363,8 +1386,11 @@ function onMousePress(view)
     if view == tree_view then
         -- Try to open whatever is at the click's y index
         -- Will go into/back dirs based on what's clicked, nothing gets expanded
-        local y = tree_view.Cursor.Loc.Y
-        try_open_at_y(y)
+        if config.GetGlobalOption('filemanager2.clickexpand') then
+            try_open_at_y(tree_view.Cursor.Loc.Y, false)
+        else
+            try_open_at_y(tree_view.Cursor.Loc.Y, true)
+        end
         -- Don't actually allow the mousepress to trigger, so we avoid highlighting stuff
         return false
     end
@@ -1411,7 +1437,7 @@ function preIndentSelection(view)
         tab_pressed = true
         -- Open the file
         -- Using tab instead of enter, since enter won't work with Readonly
-        try_open_at_y(tree_view.Cursor.Loc.Y)
+        try_open_at_y(tree_view.Cursor.Loc.Y, true)
         -- Don't actually insert a tab
         return false
     end
@@ -1427,6 +1453,7 @@ function preInsertTab(view)
 end
 function preInsertNewline(view)
     if view == tree_view then
+        try_open_at_y(tree_view.Cursor.Loc.Y, true)
         return false
     end
     return true
@@ -1639,6 +1666,8 @@ function init()
     config.RegisterCommonOption('filemanager2', 'persist', true)
     -- Show working directory path or not
     config.RegisterCommonOption('filemanager2', 'workingdir', true)
+    -- Expand instead of changing directory when clicking on directory
+    config.RegisterCommonOption('filemanager2', 'clickexpand', true)
     
     -- Use file icon in status bar
     micro.SetStatusInfoFn('filemanager2.FileIcon')

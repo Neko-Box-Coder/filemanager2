@@ -77,6 +77,7 @@ The only fix is to close and open the tree.
 | `filemanager2.lengthfactor`  | Multiplier on tree width depending on how long the line is   | `0.3`   |
 | `filemanager2.persist`       | Show persistent file tree while switching tabs               | `true`  |
 | `filemanager2.workingdir`    | Show working directory path or not                           | `true`  |
+| `filemanager2.clickexpand`   | Click to expand the directory if true, go into it otherwise. | `true`  |
 
 In addition to this, you can also get the file icon in the status bar by calling `filemanager2.FileIcon`, 
 for example
@@ -95,20 +96,21 @@ If you want to
 [keybind](https://github.com/zyedidia/micro/blob/master/runtime/help/keybindings.md#rebinding-keys) 
 any of the operations/commands, bind to the labeled API in the table below.
 
-| Command  | Keybinding(s)              | What it does                                                                                | API for `bindings.json`                |
-| :------- | :------------------------- | :------------------------------------------------------------------------------------------ | :------------------------------------- |
-| `tree`   | -                          | Open/close the tree, or moves to the tree to current tab if opened in different tab         | `filemanager2.toggle_tree`             |
-| -        | <kbd>Tab</kbd> & MouseLeft | Open a file, or go into the directory. Goes back a dir if on `..`                           | `filemanager2.try_open_at_cursor`      |
-| -        | <kbd>→</kbd>               | Expand directory in tree listing                                                            | `filemanager2.uncompress_at_cursor`    |
-| -        | <kbd>←</kbd>               | Collapse directory listing                                                                  | `filemanager2.compress_at_cursor`      |
-| -        | <kbd>Shift ⬆</kbd>         | Go to the target's parent directory                                                         | `filemanager2.goto_parent_dir`         |
-| -        | <kbd>Alt Shift {</kbd>     | Jump to the previous directory in the view                                                  | `filemanager2.goto_next_dir`           |
-| -        | <kbd>Alt Shift }</kbd>     | Jump to the next directory in the view                                                      | `filemanager2.goto_prev_dir`           |
-| `rm`     | -                          | Prompt to delete the target file/directory your cursor is on                                | `filemanager2.prompt_delete_at_cursor` |
-| `rename` | -                          | Rename the file/directory your cursor is on, using the passed name                          | `filemanager2.rename_at_cursor`        |
-| `touch`  | -                          | Make a new file under/into the file/directory your cursor is on, using the passed name      | `filemanager2.new_file`                |
-| `mkdir`  | -                          | Make a new directory under/into the file/directory your cursor is on, using the passed name | `filemanager2.new_dir`                 |
-| `cp`     | -                          | Copy the file/directory your cursor is on with the passed path as destination file/dir      | `filemanager2.copy`                    |
+| Command  | Keybinding(s)                      | What it does                                                                                | API for `bindings.json`                         |
+| :------- | :--------------------------------- | :------------------------------------------------------------------------------------------ | :---------------------------------------------- |
+| `tree`   | -                                  | Open/close the tree, or moves to the tree to current tab if opened in different tab         | `filemanager2.toggle_tree`                      |
+| -        | <kbd>Tab</kbd> & <kbd>Enter</kbd>  | Open a file, or go into the directory. Goes back a dir if on `..`                           | `filemanager2.try_open_at_cursor`               |
+| -        | Mouse Click                        | Open a file, or expand/collapse the directory. Goes back a dir if on `..`                   | `filemanager2.try_expand_or_open_at_cursor`     |
+| -        | <kbd>→</kbd>                       | Expand directory in tree listing                                                            | `filemanager2.uncompress_at_cursor`             |
+| -        | <kbd>←</kbd>                       | Collapse directory listing                                                                  | `filemanager2.compress_at_cursor`               |
+| -        | <kbd>Shift ⬆</kbd>                 | Go to the target's parent directory                                                         | `filemanager2.goto_parent_dir`                  |
+| -        | <kbd>Alt Shift {</kbd>             | Jump to the previous directory in the view                                                  | `filemanager2.goto_next_dir`                    |
+| -        | <kbd>Alt Shift }</kbd>             | Jump to the next directory in the view                                                      | `filemanager2.goto_prev_dir`                    |
+| `rm`     | -                                  | Prompt to delete the target file/directory your cursor is on                                | `filemanager2.prompt_delete_at_cursor`          |
+| `rename` | -                                  | Rename the file/directory your cursor is on, using the passed name                          | `filemanager2.rename_at_cursor`                 |
+| `touch`  | -                                  | Make a new file under/into the file/directory your cursor is on, using the passed name      | `filemanager2.new_file`                         |
+| `mkdir`  | -                                  | Make a new directory under/into the file/directory your cursor is on, using the passed name | `filemanager2.new_dir`                          |
+| `cp`     | -                                  | Copy the file/directory your cursor is on with the passed path as destination file/dir      | `filemanager2.copy`                             |
 
 #### Notes
 
