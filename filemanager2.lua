@@ -1096,10 +1096,13 @@ function onSetActive(bp)
     end
     on_set_active_guard = true
     
+    local tree_same_tab = true
+    
     if  tree_view ~= nil and 
         tree_view:Tab() ~= bp:Tab() and 
         config.GetGlobalOption('filemanager2.persist') then
         
+        tree_same_tab = false
         toggle_tree(bp)
         local activeIdx = 1
         for i = 1, #bp:Tab().Panes do
@@ -1111,7 +1114,10 @@ function onSetActive(bp)
         bp:Tab():SetActive(activeIdx - 1)
     end
     
-    if tree_view ~= nil and config.GetGlobalOption('filemanager2.showcurrent') then
+    if  tree_view ~= nil and 
+        config.GetGlobalOption('filemanager2.showcurrent') and 
+        not tree_same_tab then
+        
         -- If there's a valid buffer path, uncompress the tree to reach it
         if  bp.Buf.AbsPath ~= "" and 
             path_exists(bp.Buf.AbsPath) and 
