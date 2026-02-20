@@ -769,33 +769,34 @@ function toggle_compress(y)
 end
 
 local function try_uncompress_path(path)
-    local target_path = try_convert_rel(path)
-    target_path = filepath.Clean(target_path)
-    local current = current_dir
-    local components = {}
+    local clean_path = filepath.Clean(path)
     
-    -- Split the path into components
-    while target_path ~= current and target_path ~= "/" and target_path ~= "." do
-        table.insert(components, 1, get_basename(target_path))
-        target_path = filepath.Dir(target_path)
+    -- Convert to abs path if not
+    if not filepath.IsAbs(clean_path) then
+        local wd, wd_err = os.Getwd()
+        
+        if wd_err ~= nil then
+            return
+        end
+        
+        local abs_path, abs_err = filepath.Abs(filepath.Join(wd, clean_path))
+        if abs_err == nil then
+            clean_path = absPath
+        end
     end
     
-    -- For each component, find and uncompress the corresponding directory
+    -- Iterate each item in scanlist until we find the path we want, uncompress dir in the process
     local y = 0
-    for i = 1, #components do
-        -- Search for the component in current level
-        for j = 1, #scanlist do
-            if get_basename(scanlist[j].abspath) == components[i] then
-                y = j
-                -- If it's a directory and not the last component, uncompress it
-                if i < #components and scanlist[j].dirmsg == Icons()['dir'] then
-                    uncompress_target(y)
-                end
-                
-                -- TODO: If the same name appear more than once, this will fail. 
-                --       Temp fix for now is to just uncompress all matching dir, but this is inefficient
-                -- break
-            end
+    for j = 1, #scanlist do
+        if  scanlist[j].dirmsg == Icons()['dir'] and 
+            string.find(clean_path, scanlist[j].abspath) then
+            
+            uncompress_target(j)
+        end
+        
+        if scanlist[j].abspath == clean_path then
+            y = j
+            break
         end
     end
     
