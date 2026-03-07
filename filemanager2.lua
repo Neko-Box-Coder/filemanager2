@@ -787,17 +787,19 @@ local function try_uncompress_path(path)
     
     -- Iterate each item in scanlist until we find the path we want, uncompress dir in the process
     local y = 0
-    for j = 1, #scanlist do
+    local j = 1
+    while(j <= #scanlist)
+    do
         if  scanlist[j].dirmsg == Icons()['dir'] and 
             string.find(clean_path, scanlist[j].abspath) then
             
             uncompress_target(j)
         end
-        
         if scanlist[j].abspath == clean_path then
             y = j
             break
         end
+        j = j + 1
     end
     
     -- Move cursor to the final target
