@@ -1137,6 +1137,8 @@ function onQuit(bp)
     if tree_view ~= nil and bp ~= tree_view then
         tree_view:ResizePane(tree_width)
     end
+    
+    return true
 end
 
 
