@@ -26,7 +26,20 @@ If [nerd fonts](https://www.nerdfonts.com) is installed and options `filemanager
 ## Installation
 
 ### Settings
-Add this repo as a **pluginrepos** option in the **~/.config/micro/settings.json** file 
+Filemanager2 can be installed by adding [unofficial plugin channel](https://github.com/Neko-Box-Coder/unofficial-plugin-channel)
+to your **pluginchannels** option in the **~/.config/micro/settings.json** file. 
+For more details, please visit the unofficial plugin channel repository.
+
+```json
+"pluginchannels": [
+    //Get plugins from main channel first
+    "https://raw.githubusercontent.com/Neko-Box-Coder/unofficial-plugin-channel/main/channel.json",
+    //The use the official channel last
+    "https://raw.githubusercontent.com/micro-editor/plugin-channel/master/channel.json"
+]
+```
+
+Alternatively, you can add this repo as a **pluginrepos** option
 (it is necessary to restart the micro after this change):
 ```json
 {
