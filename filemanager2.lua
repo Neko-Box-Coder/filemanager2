@@ -791,7 +791,7 @@ local function try_uncompress_path(path)
     while(j <= #scanlist)
     do
         if  scanlist[j].dirmsg == Icons()['dir'] and 
-            string.find(clean_path, scanlist[j].abspath) then
+            string.find(clean_path, scanlist[j].abspath, 1, true) then
             
             uncompress_target(j)
         end
