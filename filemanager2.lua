@@ -1136,7 +1136,7 @@ function onSetActive(bp)
 end
 
 function onQuit(bp)
-    if tree_view ~= nil and bp ~= tree_view then
+    if tree_view ~= nil and bp ~= tree_view and #tree_view:Tab().Panes > 1 then
         tree_view:ResizePane(tree_width)
     end
     
