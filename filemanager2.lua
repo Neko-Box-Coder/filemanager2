@@ -1321,7 +1321,10 @@ function preQuit(view)
         close_tree()
         -- Don't actually "quit", otherwise it closes everything without saving for some reason
         return false
+    elseif tree_view ~= nil and view:Tab() == tree_view:Tab() then
+        close_tree()
     end
+    return true
 end
 
 -- Close all
